@@ -1,19 +1,258 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tech Assistant</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tech Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f4f3ef;
+    --surface: #ffffff;
+    --surface2: #f9f8f5;
+    --border: #e2e0d8;
+    --border2: #d0cec4;
+    --text: #1a1916;
+    --text2: #6b6860;
+    --text3: #9e9b94;
+    --accent: #c1440e;
+    --accent-light: #fdf0eb;
+    --accent-text: #8a2d07;
+    --green: #2d7a4f;
+    --green-bg: #edf7f2;
+    --amber: #92620a;
+    --amber-bg: #fef8ec;
+    --blue: #1a5fa8;
+    --blue-bg: #eef4fc;
+    --purple: #6b3fa0;
+    --purple-bg: #f3eefb;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.09), 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.5; }
+
+  .shell { display: flex; min-height: 100vh; }
+  .sidebar { width: 220px; flex-shrink: 0; background: var(--text); color: #e8e6e0; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+  .sidebar-brand { padding: 20px 16px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .sidebar-brand .logo { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 600; color: #fff; letter-spacing: -0.01em; }
+  .sidebar-brand .logo i { font-size: 18px; color: var(--accent); }
+  .sidebar-brand .sub { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 2px; padding-left: 27px; }
+  .sidebar-nav { padding: 12px 8px; flex: 1; }
+  .nav-section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.3); padding: 10px 8px 5px; }
+  .nav-btn { display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px 10px; border-radius: var(--radius); border: none; background: transparent; color: rgba(255,255,255,0.55); font-family: 'DM Sans', sans-serif; font-size: 13.5px; cursor: pointer; text-align: left; transition: background 0.12s, color 0.12s; position: relative; }
+  .nav-btn i { font-size: 16px; }
+  .nav-btn:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.85); }
+  .nav-btn.active { background: rgba(255,255,255,0.1); color: #fff; font-weight: 500; }
+  .nav-btn.active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 18px; background: var(--accent); border-radius: 0 2px 2px 0; }
+  .nav-badge { margin-left: auto; background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.6); font-size: 10px; padding: 1px 6px; border-radius: 100px; font-weight: 500; }
+  .sidebar-footer { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 11px; color: rgba(255,255,255,0.25); }
+
+  .page-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .page-header h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+  .page-header .actions { display: flex; gap: 8px; align-items: center; }
+  .page-body { padding: 24px; flex: 1; }
+
+  .tab-page { display: none; }
+  .tab-page.active { display: block; }
+
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius); border: 1px solid var(--border2); background: var(--surface); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background 0.12s, border-color 0.12s, transform 0.08s; }
+  .btn:hover { background: var(--surface2); }
+  .btn:active { transform: scale(0.98); }
+  .btn i { font-size: 15px; }
+  .btn-accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-accent:hover { background: #a33809; border-color: #a33809; }
+  .btn-danger { color: var(--accent); border-color: rgba(193,68,14,0.3); }
+  .btn-danger:hover { background: var(--accent-light); }
+  .btn-ghost { border-color: transparent; background: transparent; }
+  .btn-ghost:hover { background: var(--surface2); border-color: var(--border); }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-sm i { font-size: 13px; }
+  .btn-green { background: var(--green); color: #fff; border-color: var(--green); }
+  .btn-green:hover { background: #236040; border-color: #236040; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-group label { font-size: 12px; font-weight: 500; color: var(--text2); }
+  .form-group input, .form-group textarea, .form-group select { padding: 8px 11px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface2); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13.5px; transition: border-color 0.12s, box-shadow 0.12s; width: 100%; }
+  .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(193,68,14,0.1); background: var(--surface); }
+  .form-group textarea { resize: vertical; min-height: 88px; line-height: 1.6; }
+  .section-rule { grid-column: 1 / -1; padding-top: 16px; margin-top: 4px; border-top: 1px solid var(--border); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
+  .card-header { padding: 14px 18px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .card-header h2 { font-size: 14px; font-weight: 600; }
+  .card-body { padding: 18px; }
+
+  /* ── Template Builder ── */
+  .builder-layout { display: grid; grid-template-columns: 260px 1fr; gap: 20px; align-items: start; }
+
+  .tmpl-list { display: flex; flex-direction: column; gap: 4px; }
+  .tmpl-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius); border: 1px solid transparent; background: transparent; cursor: pointer; transition: all 0.1s; text-align: left; width: 100%; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--text); }
+  .tmpl-item:hover { background: var(--surface2); border-color: var(--border); }
+  .tmpl-item.active { background: var(--accent-light); border-color: rgba(193,68,14,0.25); color: var(--accent-text); font-weight: 500; }
+  .tmpl-item i { font-size: 16px; color: var(--accent); flex-shrink: 0; }
+  .tmpl-item .tmpl-cat { font-size: 10px; color: var(--text3); margin-left: auto; flex-shrink: 0; }
+  .tmpl-item.active .tmpl-cat { color: rgba(138,45,7,0.5); }
+
+  .tmpl-search-wrap { margin-bottom: 10px; }
+  .tmpl-search-wrap input { width: 100%; padding: 8px 11px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--text); }
+  .tmpl-search-wrap input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(193,68,14,0.1); }
+
+  /* ── Options Builder (right panel) ── */
+  .builder-panel { display: flex; flex-direction: column; gap: 16px; }
+  .builder-empty { text-align: center; padding: 60px 20px; color: var(--text3); }
+  .builder-empty i { font-size: 44px; display: block; margin-bottom: 12px; opacity: 0.3; }
+  .builder-empty p { font-size: 13.5px; }
+
+  .options-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); overflow: hidden; }
+  .options-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .options-header i { font-size: 18px; color: var(--accent); }
+  .options-header h2 { font-size: 15px; font-weight: 600; }
+  .options-header .tmpl-sub { font-size: 12px; color: var(--text3); margin-left: auto; }
+  .options-body { padding: 18px; }
+  .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .options-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .opt-group { display: flex; flex-direction: column; gap: 5px; }
+  .opt-group.full { grid-column: 1 / -1; }
+  .opt-group label { font-size: 11.5px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; }
+  .opt-group input, .opt-group select, .opt-group textarea { padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface2); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13.5px; width: 100%; transition: border-color 0.12s, box-shadow 0.12s; }
+  .opt-group input:focus, .opt-group select:focus, .opt-group textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(193,68,14,0.1); background: var(--surface); }
+  .opt-group textarea { resize: vertical; min-height: 70px; line-height: 1.6; }
+
+  /* Toggle pills */
+  .toggle-group { display: flex; flex-wrap: wrap; gap: 6px; }
+  .toggle-pill { padding: 5px 12px; border-radius: 100px; border: 1.5px solid var(--border2); background: var(--surface); font-size: 12.5px; font-weight: 500; cursor: pointer; transition: all 0.12s; color: var(--text2); user-select: none; }
+  .toggle-pill:hover { border-color: var(--accent); color: var(--accent-text); }
+  .toggle-pill.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .toggle-pill.selected:hover { background: #a33809; }
+
+  /* Checkbox tiles */
+  .check-tiles { display: flex; flex-wrap: wrap; gap: 6px; }
+  .check-tile { display: flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: var(--radius); border: 1.5px solid var(--border); background: var(--surface); font-size: 12.5px; cursor: pointer; transition: all 0.12s; user-select: none; color: var(--text2); }
+  .check-tile:hover { border-color: var(--accent); color: var(--accent-text); }
+  .check-tile.selected { background: var(--accent-light); border-color: rgba(193,68,14,0.4); color: var(--accent-text); font-weight: 500; }
+  .check-tile i { font-size: 13px; }
+
+  .opt-divider { grid-column: 1 / -1; border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+
+  /* Output section */
+  .output-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); overflow: hidden; }
+  .output-tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .output-tab { padding: 10px 18px; font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent; transition: color 0.12s; }
+  .output-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .output-body { padding: 16px 18px; }
+  .output-label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .output-area { width: 100%; min-height: 90px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface2); font-family: 'DM Mono', monospace; font-size: 12.5px; line-height: 1.7; color: var(--text); resize: vertical; }
+  .output-area:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(193,68,14,0.1); background: var(--surface); }
+
+  .output-actions { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .copy-success { font-size: 12px; color: var(--green); display: none; align-items: center; gap: 5px; font-weight: 500; }
+
+  /* Queue */
+  .queue-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); overflow: hidden; }
+  .queue-header { padding: 12px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .queue-header h3 { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .queue-count { background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 100px; }
+  .queue-list { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; min-height: 52px; }
+  .queue-empty { font-size: 12.5px; color: var(--text3); padding: 8px 6px; font-style: italic; }
+  .queue-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); }
+  .queue-item-name { font-size: 12.5px; font-weight: 600; flex: 1; }
+  .queue-item-cause { font-size: 11.5px; color: var(--text2); margin-top: 2px; font-family: 'DM Mono', monospace; line-height: 1.5; }
+  .queue-item-corr { font-size: 11.5px; color: var(--blue); margin-top: 2px; font-family: 'DM Mono', monospace; line-height: 1.5; }
+  .queue-item-meta { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+  .queue-remove { flex-shrink: 0; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border2); background: transparent; color: var(--text3); cursor: pointer; font-size: 12px; transition: all 0.1s; }
+  .queue-remove:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .queue-footer { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+
+  /* ── RO Notepad ── */
+  .ro-wrap { max-width: 780px; }
+  .autosave-hint { font-size: 11.5px; color: var(--text3); display: flex; align-items: center; gap: 5px; }
+
+  /* ── Work Log ── */
+  .log-toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+  .log-toolbar input { padding: 7px 11px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--text); width: 220px; }
+  .log-toolbar input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(193,68,14,0.1); }
+  .log-toolbar select { padding: 7px 11px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--text); }
+  .spacer { flex: 1; }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); padding: 0 12px 10px; border-bottom: 1px solid var(--border); }
+  tbody tr { transition: background 0.1s; }
+  tbody tr:hover td { background: var(--surface2); }
+  tbody td { padding: 11px 12px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  .td-ro { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .td-vehicle { font-weight: 500; }
+  .td-notes { color: var(--text2); font-size: 12.5px; max-width: 180px; }
+  .td-actions { white-space: nowrap; text-align: right; }
+
+  .pill { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 100px; }
+  .pill-done { background: var(--green-bg); color: var(--green); }
+  .pill-wip { background: var(--amber-bg); color: var(--amber); }
+  .pill-parts { background: var(--blue-bg); color: var(--blue); }
+  .pill-customer { background: var(--purple-bg); color: var(--purple); }
+  .pill-review { background: #fff3cd; color: #856404; }
+
+  .hours-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; color: var(--blue); background: var(--blue-bg); padding: 2px 7px; border-radius: 100px; margin-left: 5px; font-family: 'DM Mono', monospace; }
+
+  .empty-state { text-align: center; padding: 56px 20px; color: var(--text3); }
+  .empty-state i { font-size: 40px; display: block; margin-bottom: 10px; opacity: 0.35; }
+  .empty-state p { font-size: 13.5px; }
+
+  /* ── Summary ── */
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
+  .stat-card .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); margin-bottom: 6px; }
+  .stat-card .stat-value { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; color: var(--text); font-family: 'DM Mono', monospace; }
+  .stat-card .stat-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .week-table { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+  .week-table thead th { background: var(--surface2); padding: 10px 14px; }
+  .week-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .week-nav span { font-size: 14px; font-weight: 500; min-width: 200px; text-align: center; }
+
+  /* ── Modal ── */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; display: none; }
+  .modal-backdrop.open { display: flex; }
+  .modal { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); width: 90%; max-width: 640px; max-height: 90vh; overflow-y: auto; }
+  .modal-header { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-header h2 { font-size: 15px; font-weight: 600; }
+  .modal-body { padding: 20px; }
+  .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+  /* ── Toast ── */
+  .toast { position: fixed; bottom: 20px; right: 20px; background: var(--text); color: #fff; padding: 10px 16px; border-radius: var(--radius); font-size: 13px; font-weight: 500; box-shadow: var(--shadow-md); display: flex; align-items: center; gap: 8px; z-index: 2000; transform: translateY(80px); opacity: 0; transition: transform 0.25s, opacity 0.25s; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast i { font-size: 16px; }
+  .toast.success i { color: #5cc98a; }
+  .toast.info i { color: #6da8f0; }
+
+  @media (max-width: 900px) {
+    .builder-layout { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 680px) {
+    .sidebar { width: 60px; }
+    .sidebar-brand .logo span, .sidebar-brand .sub, .nav-section-label, .nav-btn span, .nav-badge { display: none; }
+    .nav-btn { justify-content: center; padding: 10px; }
+    .nav-btn.active::before { display: none; }
+    .page-body { padding: 16px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .options-grid { grid-template-columns: 1fr; }
+  }
+</style>
 </head>
 <body>
 
 <div class="shell">
-
-  <!-- ══ SIDEBAR ══ -->
   <aside class="sidebar">
     <div class="sidebar-brand">
       <div class="logo"><i class="ti ti-tool"></i><span>Tech Assistant</span></div>
@@ -21,66 +260,100 @@
     </div>
     <nav class="sidebar-nav">
       <div class="nav-section-label">Tools</div>
-      <button class="nav-btn active" onclick="showTab('templates',this)" aria-label="Templates">
-        <i class="ti ti-clipboard-list"></i><span>Templates</span>
-      </button>
-      <button class="nav-btn" onclick="showTab('ro',this)" aria-label="RO Notepad">
-        <i class="ti ti-file-description"></i><span>RO Notepad</span>
-      </button>
-      <button class="nav-btn" onclick="showTab('log',this)" aria-label="Work Log">
-        <i class="ti ti-list-details"></i><span>Work Log</span>
-        <span class="nav-badge" id="log-nav-count">0</span>
-      </button>
-      <button class="nav-btn" onclick="showTab('summary',this)" aria-label="Weekly Summary">
-        <i class="ti ti-chart-bar"></i><span>Summary</span>
-      </button>
+      <button class="nav-btn active" onclick="showTab('templates',this)"><i class="ti ti-clipboard-list"></i><span>Templates</span></button>
+      <button class="nav-btn" onclick="showTab('ro',this)"><i class="ti ti-file-description"></i><span>RO Notepad</span></button>
+      <button class="nav-btn" onclick="showTab('log',this)"><i class="ti ti-list-details"></i><span>Work Log</span><span class="nav-badge" id="log-nav-count">0</span></button>
+      <button class="nav-btn" onclick="showTab('summary',this)"><i class="ti ti-chart-bar"></i><span>Summary</span></button>
     </nav>
-    <div class="sidebar-footer">Auto Tech v1.0</div>
+    <div class="sidebar-footer">Auto Tech v2.0</div>
   </aside>
 
-  <!-- ══ MAIN ══ -->
   <main class="main">
 
-    <!-- Templates -->
+    <!-- ══ TEMPLATES ══ -->
     <div class="tab-page active" id="tab-templates">
       <div class="page-header">
         <h1>Service templates</h1>
         <div class="actions">
-          <button class="btn btn-accent" onclick="openRequestModal()">
-            <i class="ti ti-sparkles"></i>Request templates
-          </button>
+          <button class="btn btn-accent" onclick="openRequestModal()"><i class="ti ti-sparkles"></i>Request templates</button>
         </div>
       </div>
       <div class="page-body">
-        <div class="template-search">
-          <input type="text" id="tmpl-search" placeholder="Search templates…" oninput="filterTemplates()" autocomplete="off">
-        </div>
-        <div class="template-grid" id="template-grid"></div>
-        <div class="template-output" id="template-output" style="display:none;">
-          <div class="output-label">
-            <i class="ti ti-pencil" style="font-size:14px;"></i>
-            Edit before copying — replace placeholders like {torque}
+        <div class="builder-layout">
+          <!-- Left: template list -->
+          <div>
+            <div class="tmpl-search-wrap">
+              <input type="text" id="tmpl-search" placeholder="Search templates…" oninput="filterTemplates()" autocomplete="off">
+            </div>
+            <div class="tmpl-list" id="tmpl-list"></div>
           </div>
-          <textarea id="template-text" spellcheck="true"></textarea>
-          <div class="copy-row">
-            <button class="btn btn-accent" onclick="copyTemplate()"><i class="ti ti-copy"></i>Copy to clipboard</button>
-            <button class="btn" onclick="sendToRO()"><i class="ti ti-arrow-right"></i>Send to RO notepad</button>
-            <button class="btn btn-ghost btn-sm" onclick="closeTemplateOutput()"><i class="ti ti-x"></i></button>
-            <span class="copy-success" id="copy-success"><i class="ti ti-check"></i>Copied!</span>
+
+          <!-- Right: builder + queue -->
+          <div class="builder-panel">
+            <div id="builder-empty" class="builder-empty card">
+              <i class="ti ti-layout-cards"></i>
+              <p>Select a service template on the left to build your Cause &amp; Correction.</p>
+            </div>
+
+            <!-- Options card — hidden until template selected -->
+            <div class="options-card" id="options-card" style="display:none;">
+              <div class="options-header">
+                <i class="ti ti-settings-2" id="opt-icon"></i>
+                <h2 id="opt-title">Template</h2>
+                <span class="tmpl-sub" id="opt-cat"></span>
+              </div>
+              <div class="options-body" id="opt-body"></div>
+            </div>
+
+            <!-- Output -->
+            <div class="output-section" id="output-section" style="display:none;">
+              <div class="output-tabs">
+                <div class="output-tab active" onclick="switchOutputTab('cause',this)">Cause</div>
+                <div class="output-tab" onclick="switchOutputTab('correction',this)">Correction</div>
+              </div>
+              <div class="output-body">
+                <div id="out-cause-wrap">
+                  <div class="output-label">Tech Findings / Cause</div>
+                  <textarea class="output-area" id="out-cause" rows="3"></textarea>
+                </div>
+                <div id="out-corr-wrap" style="display:none;">
+                  <div class="output-label">Work Performed / Correction</div>
+                  <textarea class="output-area" id="out-correction" rows="4"></textarea>
+                </div>
+              </div>
+              <div class="output-actions">
+                <button class="btn btn-accent" onclick="generateOutput()"><i class="ti ti-refresh"></i>Generate</button>
+                <button class="btn btn-green" onclick="addToQueue()"><i class="ti ti-plus"></i>Add to queue</button>
+                <button class="btn btn-ghost btn-sm" onclick="copyActive()"><i class="ti ti-copy"></i>Copy</button>
+                <span class="copy-success" id="copy-success"><i class="ti ti-check"></i>Copied!</span>
+              </div>
+            </div>
+
+            <!-- Queue -->
+            <div class="queue-section" id="queue-section">
+              <div class="queue-header">
+                <h3><i class="ti ti-stack-2" style="font-size:15px;color:var(--accent);"></i> Service queue <span class="queue-count" id="queue-count">0</span></h3>
+              </div>
+              <div class="queue-list" id="queue-list">
+                <div class="queue-empty">No services queued — build a template and add it above.</div>
+              </div>
+              <div class="queue-footer">
+                <button class="btn btn-accent" onclick="sendQueueToRO()"><i class="ti ti-arrow-right"></i>Send all to RO notepad</button>
+                <button class="btn btn-ghost btn-sm" onclick="clearQueue()"><i class="ti ti-trash"></i>Clear queue</button>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
     </div>
 
-    <!-- RO Notepad -->
+    <!-- ══ RO NOTEPAD ══ -->
     <div class="tab-page" id="tab-ro">
       <div class="page-header">
         <h1>RO Notepad</h1>
         <div class="actions">
-          <span class="autosave-hint">
-            <i class="ti ti-device-floppy"></i>
-            <span id="autosave-label">Auto-saved</span>
-          </span>
+          <span class="autosave-hint"><i class="ti ti-device-floppy"></i><span id="autosave-label">Auto-saved</span></span>
           <button class="btn" onclick="clearRO()"><i class="ti ti-rotate-left"></i>New RO</button>
           <button class="btn btn-accent" onclick="saveROToLog()"><i class="ti ti-plus"></i>Add to log</button>
         </div>
@@ -88,78 +361,43 @@
       <div class="page-body">
         <div class="ro-wrap">
           <div class="form-grid">
-
-            <div class="form-group">
-              <label>RO number</label>
-              <input type="text" id="ro-num" placeholder="e.g. 105234" oninput="autosaveRO()">
-            </div>
-            <div class="form-group">
-              <label>Date</label>
-              <input type="date" id="ro-date" oninput="autosaveRO()">
-            </div>
-            <div class="form-group">
-              <label>Year / Make / Model</label>
-              <input type="text" id="ro-vehicle" placeholder="e.g. 2019 Ford F-150" oninput="autosaveRO()">
-            </div>
-            <div class="form-group">
-              <label>VIN</label>
-              <input type="text" id="ro-vin" placeholder="Full or last 8 digits" maxlength="17" oninput="autosaveRO()">
-            </div>
-            <div class="form-group">
-              <label>Service writer</label>
-              <input type="text" id="ro-sw" placeholder="Name" oninput="autosaveRO()">
-            </div>
-            <div class="form-group">
-              <label>Mileage in</label>
-              <input type="text" id="ro-miles" placeholder="e.g. 47,230" oninput="autosaveRO()">
-            </div>
-
+            <div class="form-group"><label>RO number</label><input type="text" id="ro-num" placeholder="e.g. 105234" oninput="autosaveRO()"></div>
+            <div class="form-group"><label>Date</label><input type="date" id="ro-date" oninput="autosaveRO()"></div>
+            <div class="form-group"><label>Year / Make / Model</label><input type="text" id="ro-vehicle" placeholder="e.g. 2019 Ford F-150" oninput="autosaveRO()"></div>
+            <div class="form-group"><label>VIN</label><input type="text" id="ro-vin" placeholder="Full or last 8 digits" maxlength="17" oninput="autosaveRO()"></div>
+            <div class="form-group"><label>Service writer</label><input type="text" id="ro-sw" placeholder="Name" oninput="autosaveRO()"></div>
+            <div class="form-group"><label>Mileage in</label><input type="text" id="ro-miles" placeholder="e.g. 47,230" oninput="autosaveRO()"></div>
             <div class="section-rule">Diagnosis &amp; Findings</div>
-
+            <div class="form-group full"><label>Customer concern</label><input type="text" id="ro-concern" placeholder="e.g. Check engine light on, rough idle" oninput="autosaveRO()"></div>
+            <div class="form-group full"><label>DTCs / Codes</label><input type="text" id="ro-codes" placeholder="e.g. P0300, P0171" oninput="autosaveRO()"></div>
             <div class="form-group full">
-              <label>Customer concern</label>
-              <input type="text" id="ro-concern" placeholder="e.g. Check engine light on, rough idle" oninput="autosaveRO()">
+              <label>Tech findings / Cause <span style="font-size:11px;color:var(--text3);font-weight:400;">(populated from queue)</span></label>
+              <textarea id="ro-findings" placeholder="Cause stories from your service queue will appear here…" oninput="autosaveRO()" style="min-height:110px;"></textarea>
             </div>
-            <div class="form-group full">
-              <label>DTCs / Codes</label>
-              <input type="text" id="ro-codes" placeholder="e.g. P0300, P0171" oninput="autosaveRO()">
-            </div>
-            <div class="form-group full">
-              <label>Findings &amp; tech notes</label>
-              <textarea id="ro-findings" placeholder="Inspection results, parts needed, observations…" oninput="autosaveRO()"></textarea>
-            </div>
-
             <div class="section-rule">Sign-out</div>
-
             <div class="form-group full">
-              <label>Work performed</label>
-              <textarea id="ro-work" placeholder="Paste from a template, or type your sign-out here…" oninput="autosaveRO()" style="min-height:110px;"></textarea>
+              <label>Work performed / Correction <span style="font-size:11px;color:var(--text3);font-weight:400;">(populated from queue)</span></label>
+              <textarea id="ro-work" placeholder="Correction notes from your service queue will appear here…" oninput="autosaveRO()" style="min-height:130px;"></textarea>
             </div>
-            <div class="form-group">
-              <label>Hours flagged</label>
-              <input type="number" id="ro-hours" placeholder="0.0" step="0.1" min="0" oninput="autosaveRO()">
-            </div>
-            <div class="form-group">
-              <label>Status</label>
+            <div class="form-group"><label>Hours flagged</label><input type="number" id="ro-hours" placeholder="0.0" step="0.1" min="0" oninput="autosaveRO()"></div>
+            <div class="form-group"><label>Status</label>
               <select id="ro-status" onchange="autosaveRO()">
-                <option value="wip">In progress</option>
                 <option value="done">Completed</option>
-                <option value="flagged">Flagged / needs approval</option>
+                <option value="wip">Waiting on Parts</option>
+                <option value="customer">Waiting on Customer Response</option>
+                <option value="review">Needs Review (hours don't match)</option>
               </select>
             </div>
-
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Work Log -->
+    <!-- ══ WORK LOG ══ -->
     <div class="tab-page" id="tab-log">
       <div class="page-header">
         <h1>Work Log</h1>
-        <div class="actions">
-          <button class="btn" onclick="exportCSV()"><i class="ti ti-download"></i>Export CSV</button>
-        </div>
+        <div class="actions"><button class="btn" onclick="exportCSV()"><i class="ti ti-download"></i>Export CSV</button></div>
       </div>
       <div class="page-body">
         <div class="log-toolbar">
@@ -167,29 +405,18 @@
           <select id="log-filter" onchange="renderLog()">
             <option value="">All statuses</option>
             <option value="done">Completed</option>
-            <option value="wip">In progress</option>
-            <option value="flagged">Flagged</option>
+            <option value="wip">Waiting on Parts</option>
+            <option value="customer">Waiting on Customer</option>
+            <option value="review">Needs Review</option>
           </select>
           <div class="spacer"></div>
-          <span id="log-count-label" style="font-size:12px; color:var(--text3);"></span>
+          <span id="log-count-label" style="font-size:12px;color:var(--text3);"></span>
         </div>
         <div class="card" style="overflow:hidden;">
-          <div id="log-empty" class="empty-state" style="display:none;">
-            <i class="ti ti-clipboard"></i>
-            <p>No jobs logged yet. Fill out an RO and hit "Add to log."</p>
-          </div>
+          <div id="log-empty" class="empty-state" style="display:none;"><i class="ti ti-clipboard"></i><p>No jobs logged yet. Fill out an RO and hit "Add to log."</p></div>
           <div id="log-table-wrap">
             <table>
-              <thead><tr>
-                <th>Date</th>
-                <th>RO #</th>
-                <th>Vehicle</th>
-                <th>Concern</th>
-                <th>Codes</th>
-                <th>Hours</th>
-                <th>Status</th>
-                <th style="text-align:right;">Actions</th>
-              </tr></thead>
+              <thead><tr><th>Date</th><th>RO #</th><th>Vehicle</th><th>Concern</th><th>Codes</th><th>Hours</th><th>Status</th><th style="text-align:right;">Actions</th></tr></thead>
               <tbody id="log-tbody"></tbody>
             </table>
           </div>
@@ -197,13 +424,11 @@
       </div>
     </div>
 
-    <!-- Weekly Summary -->
+    <!-- ══ WEEKLY SUMMARY ══ -->
     <div class="tab-page" id="tab-summary">
       <div class="page-header">
         <h1>Weekly Summary</h1>
-        <div class="actions">
-          <button class="btn" onclick="exportWeekCSV()"><i class="ti ti-download"></i>Export week CSV</button>
-        </div>
+        <div class="actions"><button class="btn" onclick="exportWeekCSV()"><i class="ti ti-download"></i>Export week CSV</button></div>
       </div>
       <div class="page-body">
         <div class="week-nav">
@@ -215,9 +440,7 @@
         <div class="summary-grid" id="summary-stats"></div>
         <div class="week-table card" id="summary-table-wrap">
           <table>
-            <thead><tr>
-              <th>Day</th><th>Jobs</th><th>Hours flagged</th><th>Vehicles</th>
-            </tr></thead>
+            <thead><tr><th>Day</th><th>Jobs</th><th>Hours flagged</th><th>Vehicles</th></tr></thead>
             <tbody id="summary-tbody"></tbody>
           </table>
         </div>
@@ -230,10 +453,7 @@
 <!-- ══ EDIT MODAL ══ -->
 <div class="modal-backdrop" id="edit-modal">
   <div class="modal">
-    <div class="modal-header">
-      <h2>Edit job</h2>
-      <button class="btn btn-ghost btn-sm" onclick="closeEditModal()"><i class="ti ti-x"></i></button>
-    </div>
+    <div class="modal-header"><h2>Edit job</h2><button class="btn btn-ghost btn-sm" onclick="closeEditModal()"><i class="ti ti-x"></i></button></div>
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-group"><label>RO number</label><input type="text" id="edit-ro-num"></div>
@@ -244,56 +464,905 @@
         <div class="form-group"><label>Mileage in</label><input type="text" id="edit-ro-miles"></div>
         <div class="form-group full"><label>Customer concern</label><input type="text" id="edit-ro-concern"></div>
         <div class="form-group full"><label>DTCs / Codes</label><input type="text" id="edit-ro-codes"></div>
-        <div class="form-group full"><label>Findings &amp; tech notes</label><textarea id="edit-ro-findings"></textarea></div>
-        <div class="form-group full"><label>Work performed</label><textarea id="edit-ro-work" style="min-height:100px;"></textarea></div>
+        <div class="form-group full"><label>Tech findings / Cause</label><textarea id="edit-ro-findings"></textarea></div>
+        <div class="form-group full"><label>Work performed / Correction</label><textarea id="edit-ro-work" style="min-height:100px;"></textarea></div>
         <div class="form-group"><label>Hours flagged</label><input type="number" id="edit-ro-hours" step="0.1" min="0"></div>
-        <div class="form-group">
-          <label>Status</label>
+        <div class="form-group"><label>Status</label>
           <select id="edit-ro-status">
-            <option value="wip">In progress</option>
             <option value="done">Completed</option>
-            <option value="flagged">Flagged / needs approval</option>
+            <option value="wip">Waiting on Parts</option>
+            <option value="customer">Waiting on Customer Response</option>
+            <option value="review">Needs Review (hours don't match)</option>
           </select>
         </div>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeEditModal()">Cancel</button>
-      <button class="btn btn-accent" onclick="saveEdit()"><i class="ti ti-device-floppy"></i>Save changes</button>
-    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeEditModal()">Cancel</button><button class="btn btn-accent" onclick="saveEdit()"><i class="ti ti-device-floppy"></i>Save changes</button></div>
   </div>
 </div>
 
 <!-- ══ REQUEST TEMPLATES MODAL ══ -->
 <div class="modal-backdrop" id="request-modal">
   <div class="modal">
-    <div class="modal-header">
-      <h2>Request new templates</h2>
-      <button class="btn btn-ghost btn-sm" onclick="closeRequestModal()"><i class="ti ti-x"></i></button>
-    </div>
+    <div class="modal-header"><h2>Request new templates</h2><button class="btn btn-ghost btn-sm" onclick="closeRequestModal()"><i class="ti ti-x"></i></button></div>
     <div class="modal-body">
-      <p style="font-size:13.5px; color:var(--text2); margin-bottom:14px;">
-        Describe the service procedures you want sign-out templates for. Be as specific as you'd like —
-        include torque specs, fluid types, or other details you normally reference.
-      </p>
-      <div class="form-group full">
-        <label>What templates do you need?</label>
-        <textarea id="request-text" style="min-height:110px;"
-          placeholder="e.g. Front brake pad and rotor replacement on a GM truck, coolant flush with BG flush machine, four-wheel alignment…"></textarea>
-      </div>
+      <p style="font-size:13.5px;color:var(--text2);margin-bottom:14px;">Describe the service procedures you want sign-out templates for. Include torque specs, fluid types, or other details you normally reference.</p>
+      <div class="form-group full"><label>What templates do you need?</label><textarea id="request-text" style="min-height:110px;" placeholder="e.g. Front brake pad and rotor replacement on a GM truck, power steering flush…"></textarea></div>
     </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeRequestModal()">Cancel</button>
-      <button class="btn btn-accent" onclick="submitTemplateRequest()">
-        <i class="ti ti-sparkles"></i>Send to Claude
-      </button>
-    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeRequestModal()">Cancel</button><button class="btn btn-accent" onclick="submitTemplateRequest()"><i class="ti ti-sparkles"></i>Send to Claude</button></div>
   </div>
 </div>
 
-<!-- Toast -->
 <div class="toast" id="toast"><i class="ti ti-check"></i><span id="toast-msg"></span></div>
 
-<script src="app.js"></script>
+<script>
+// ─── Template Definitions ─────────────────────────────────────────────────────
+// Each template has: name, cat, icon, fields (for the option builder), and
+// generate(opts) → { cause, correction }
+
+const TEMPLATES = [
+  {
+    id: 'oil_change',
+    name: 'Oil & Filter Change',
+    cat: 'Maintenance',
+    icon: 'ti-droplet',
+    fields: [
+      { id: 'viscosity', label: 'Oil viscosity', type: 'toggle', options: ['0W-16','0W-20','5W-20','5W-30','5W-40','0W-40'] },
+      { id: 'quarts', label: 'Quarts', type: 'input', placeholder: 'e.g. 5.7', inputType: 'text' },
+      { id: 'oil_type', label: 'Oil type', type: 'toggle', options: ['Full Synthetic','Synthetic Blend','Conventional','High Mileage'] },
+      { id: 'olm_reset', label: 'OLM reset', type: 'toggle', options: ['Yes','N/A'] },
+    ],
+    generate(o) {
+      const vis = o.viscosity || '{viscosity}';
+      const qts = o.quarts || '{quarts}';
+      const type = o.oil_type || '{oil type}';
+      const olm = o.olm_reset === 'N/A' ? '' : ' Reset oil life monitor.';
+      return {
+        cause: 'Routine maintenance.',
+        correction: `Drained engine oil and removed oil filter. Installed new OEM-spec oil filter. Reinstalled drain plug with new sealing washer and torqued to spec. Filled with ${qts} qts ${vis} ${type} engine oil.${olm} Verified no leaks at drain plug and filter. Checked final oil level — at full mark on dipstick.`
+      };
+    }
+  },
+  {
+    id: 'tire_rotation',
+    name: 'Tire Rotation',
+    cat: 'Tires',
+    icon: 'ti-rotate-clockwise-2',
+    fields: [
+      { id: 'pattern', label: 'Rotation pattern', type: 'toggle', options: ['Front to rear','Rear to front','X-pattern','Full spare rotation'] },
+      { id: 'torque', label: 'Lug nut torque (ft-lbs)', type: 'input', placeholder: 'e.g. 100', inputType: 'text' },
+      { id: 'psi', label: 'Tire pressure (PSI)', type: 'input', placeholder: 'e.g. 35', inputType: 'text' },
+    ],
+    generate(o) {
+      const pat = o.pattern || '{rotation pattern}';
+      const torque = o.torque || '{torque}';
+      const psi = o.psi || '{psi}';
+      return {
+        cause: 'Routine maintenance.',
+        correction: `Rotated tires ${pat.toLowerCase()} per vehicle rotation pattern. Reinstalled wheels and torqued lug nuts to ${torque} ft-lbs. Adjusted all four tire pressures to ${psi} PSI per door placard specification.`
+      };
+    }
+  },
+  {
+    id: 'tire_balance',
+    name: 'Tire Rotation & Balance',
+    cat: 'Tires',
+    icon: 'ti-hexagon',
+    fields: [
+      { id: 'pattern', label: 'Rotation pattern', type: 'toggle', options: ['Front to rear','Rear to front','X-pattern'] },
+      { id: 'torque', label: 'Lug nut torque (ft-lbs)', type: 'input', placeholder: 'e.g. 100', inputType: 'text' },
+      { id: 'psi', label: 'Tire pressure (PSI)', type: 'input', placeholder: 'e.g. 35', inputType: 'text' },
+      { id: 'balance_spec', label: 'Balance spec (grams)', type: 'input', placeholder: 'e.g. 0.25', inputType: 'text' },
+      { id: 'vibration', label: 'Customer complaint?', type: 'toggle', options: ['Yes — vibration complaint','No — scheduled service'] },
+    ],
+    generate(o) {
+      const pat = o.pattern || '{rotation pattern}';
+      const torque = o.torque || '{torque}';
+      const psi = o.psi || '{psi}';
+      const bspec = o.balance_spec || '{balance spec}';
+      const vib = o.vibration === 'Yes — vibration complaint';
+      const cause = vib
+        ? 'Customer states vehicle vibrates at highway speeds. Inspected all four tires and wheels — found balance out of spec.'
+        : 'Routine maintenance.';
+      const testDrive = vib ? ' Road force balanced; test drove vehicle — vibration resolved.' : '';
+      return {
+        cause,
+        correction: `Rotated tires ${pat.toLowerCase()} per vehicle rotation pattern. Road force balanced all four wheels — all within ${bspec} gram spec.${testDrive} Reinstalled wheels and torqued lug nuts to ${torque} ft-lbs. Adjusted all four tire pressures to ${psi} PSI per door placard specification.`
+      };
+    }
+  },
+  {
+    id: 'flat_repair',
+    name: 'Flat Repair',
+    cat: 'Tires',
+    icon: 'ti-circle-dashed',
+    fields: [
+      { id: 'location', label: 'Tire location', type: 'toggle', options: ['LF','RF','LR','RR'] },
+      { id: 'cause', label: 'Cause of flat', type: 'toggle', options: ['Nail / screw in tread','Road debris','Valve stem leak','Sidewall damage — unrepairable','Bead leak'] },
+      { id: 'repairable', label: 'Outcome', type: 'toggle', options: ['Repaired','Not repairable — replacement needed'] },
+      { id: 'torque', label: 'Lug nut torque (ft-lbs)', type: 'input', placeholder: 'e.g. 100', inputType: 'text' },
+      { id: 'psi', label: 'Set pressure (PSI)', type: 'input', placeholder: 'e.g. 35', inputType: 'text' },
+    ],
+    generate(o) {
+      const loc = o.location || '{location}';
+      const cause = o.cause || '{cause}';
+      const torque = o.torque || '{torque}';
+      const psi = o.psi || '{psi}';
+      const repaired = o.repairable !== 'Not repairable — replacement needed';
+      const correction = repaired
+        ? `Dismounted ${loc} tire. Removed ${cause.toLowerCase()} from tread area. Verified puncture within repairable zone. Installed plug-patch per industry standard. Remounted and balanced tire. Reinstalled wheel, torqued lug nuts to ${torque} ft-lbs. Inflated to ${psi} PSI per door placard.`
+        : `Dismounted ${loc} tire. Found ${cause.toLowerCase()} — outside repairable zone / sidewall damage. Tire condemned as non-repairable. See separate line for replacement.`;
+      return {
+        cause: `Customer states ${loc} tire flat / low. Inspected tire — found ${cause.toLowerCase()}.`,
+        correction
+      };
+    }
+  },
+  {
+    id: 'tire_replace',
+    name: 'Tire Replacement',
+    cat: 'Tires',
+    icon: 'ti-circle',
+    fields: [
+      { id: 'positions', label: 'Tires replaced', type: 'multicheck', options: ['LF','RF','LR','RR'] },
+      { id: 'size', label: 'Tire size', type: 'input', placeholder: 'e.g. 235/55R18', inputType: 'text' },
+      { id: 'brand', label: 'Brand / model', type: 'input', placeholder: 'e.g. Michelin CrossClimate2', inputType: 'text' },
+      { id: 'torque', label: 'Lug nut torque (ft-lbs)', type: 'input', placeholder: 'e.g. 100', inputType: 'text' },
+      { id: 'psi', label: 'Set pressure (PSI)', type: 'input', placeholder: 'e.g. 35', inputType: 'text' },
+      { id: 'tpms', label: 'TPMS sensors', type: 'toggle', options: ['Reused existing','Replaced sensors','Service kits only'] },
+    ],
+    generate(o) {
+      const pos = (o.positions && o.positions.length) ? o.positions.join(', ') : '{positions}';
+      const size = o.size || '{size}';
+      const brand = o.brand || '{brand/model}';
+      const torque = o.torque || '{torque}';
+      const psi = o.psi || '{psi}';
+      const tpms = o.tpms || 'Reused existing';
+      let tpmsNote = '';
+      if (tpms === 'Replaced sensors') tpmsNote = ' Replaced TPMS sensors; performed TPMS relearn per OEM procedure.';
+      else if (tpms === 'Service kits only') tpmsNote = ' Installed new TPMS service kits (valve core, cap, seal, nut); performed TPMS relearn per OEM procedure.';
+      else tpmsNote = ' Verified TPMS sensors functional; performed TPMS relearn per OEM procedure.';
+      const count = o.positions ? o.positions.length : '';
+      const countStr = count ? `${count} ` : '';
+      return {
+        cause: `Customer states tires worn / requested replacement. Inspected tires — tread at or below wear indicators, replacement recommended.`,
+        correction: `Dismounted old tires. Mounted ${countStr}new ${size} ${brand} tires at ${pos} position(s). Road force balanced all replaced wheels.${tpmsNote} Reinstalled wheels, torqued lug nuts to ${torque} ft-lbs. Inflated all tires to ${psi} PSI per door placard. Disposed of old tires per shop policy.`
+      };
+    }
+  },
+  {
+    id: 'fuel_additive',
+    name: 'Fuel Additive',
+    cat: 'Maintenance',
+    icon: 'ti-droplet-filled',
+    fields: [
+      { id: 'product', label: 'Product used', type: 'input', placeholder: 'e.g. Valvoline Fuel System Cleaner', inputType: 'text', defaultValue: 'Valvoline Fuel System Cleaner' },
+      { id: 'mileage_note', label: 'Interval note', type: 'toggle', options: ['Due at 8k interval','Customer requested','First time'] },
+    ],
+    generate(o) {
+      const prod = o.product || 'Valvoline Fuel System Cleaner';
+      return {
+        cause: 'Routine maintenance — fuel system service recommended every 8,000 miles.',
+        correction: `Added ${prod} to fuel tank per product dosing instructions. Service helps clean fuel injectors, intake valves, and combustion chamber deposits to maintain fuel system performance.`
+      };
+    }
+  },
+  {
+    id: 'coolant_flush',
+    name: 'Coolant Flush',
+    cat: 'Fluids',
+    icon: 'ti-temperature',
+    fields: [
+      { id: 'coolant_spec', label: 'Coolant type', type: 'toggle', options: ['Valvoline Zerex G-05','Valvoline Zerex G-48','Valvoline Zerex Asian Vehicle Red','Valvoline Zerex Asian Vehicle Blue','OAT (orange)','HOAT (yellow)'] },
+      { id: 'coolant_qty', label: 'Total capacity (qts)', type: 'input', placeholder: 'e.g. 8', inputType: 'text' },
+      { id: 'mileage', label: 'Mileage interval', type: 'toggle', options: ['Due at 60k interval','Customer requested','Contaminated / discolored'] },
+    ],
+    generate(o) {
+      const spec = o.coolant_spec || '{coolant spec}';
+      const qty = o.coolant_qty || '{qty}';
+      const interval = o.mileage === 'Contaminated / discolored' ? 'Coolant found discolored / contaminated — flush required.' : 'Routine maintenance — coolant service recommended every 60,000 miles.';
+      return {
+        cause: interval,
+        correction: `Drained and flushed cooling system. Flushed with clean water until discharge ran clear. Refilled system with ${qty} qts ${spec} coolant per manufacturer spec. Bled air from cooling system per OEM procedure. Verified coolant level at cold fill line. No leaks noted.`
+      };
+    }
+  },
+  {
+    id: 'trans_flush',
+    name: 'Transmission Flush',
+    cat: 'Fluids',
+    icon: 'ti-settings-cog',
+    fields: [
+      { id: 'trans_type', label: 'Transmission type', type: 'toggle', options: ['Automatic','CVT','DCT'] },
+      { id: 'fluid_spec', label: 'Fluid spec', type: 'input', placeholder: 'e.g. Valvoline ATF+4', inputType: 'text', defaultValue: 'Valvoline ATF' },
+      { id: 'fluid_qty', label: 'Fluid quantity (qts)', type: 'input', placeholder: 'e.g. 7', inputType: 'text' },
+      { id: 'pan', label: 'Pan drop / filter', type: 'toggle', options: ['Pan dropped & filter replaced','Drain & fill only (no filter access)'] },
+    ],
+    generate(o) {
+      const ttype = o.trans_type || 'Automatic';
+      const spec = o.fluid_spec || 'Valvoline ATF';
+      const qty = o.fluid_qty || '{qty}';
+      const panDrop = o.pan === 'Pan dropped & filter replaced';
+      const panNote = panDrop ? ' Removed and cleaned transmission pan. Installed new OEM-spec transmission filter and pan gasket. Reinstalled pan and torqued bolts to spec.' : '';
+      return {
+        cause: 'Routine maintenance — transmission fluid service recommended every 58,000 miles.',
+        correction: `Drained ${ttype.toLowerCase()} transmission fluid.${panNote} Refilled with ${qty} qts ${spec} transmission fluid. Verified fluid level at operating temperature per OEM procedure. No leaks noted.`
+      };
+    }
+  },
+  {
+    id: 'intake_clean',
+    name: 'Intake Cleaning',
+    cat: 'Maintenance',
+    icon: 'ti-wind',
+    fields: [
+      { id: 'product', label: 'Product used', type: 'input', placeholder: 'e.g. Valvoline Throttle Body & Intake Cleaner', inputType: 'text', defaultValue: 'Valvoline Throttle Body & Intake Cleaner' },
+      { id: 'method', label: 'Method', type: 'toggle', options: ['Throttle body spray','Induction service (intake off)','Walnut blast (GDI)'] },
+    ],
+    generate(o) {
+      const prod = o.product || 'Valvoline Throttle Body & Intake Cleaner';
+      const method = o.method || 'Throttle body spray';
+      let corrDetail = '';
+      if (method === 'Walnut blast (GDI)') corrDetail = 'Removed intake manifold and performed walnut media blast on intake valves to remove carbon buildup. Cleaned media from intake ports. Reinstalled intake manifold and torqued to spec.';
+      else if (method === 'Induction service (intake off)') corrDetail = `Removed intake assembly. Applied ${prod} to throttle body bore, intake ports, and intake manifold. Cleaned throttle body butterfly and bore. Reinstalled intake and torqued to spec.`;
+      else corrDetail = `Applied ${prod} to throttle body bore and intake per label instructions. Cleaned throttle body butterfly and bore of carbon deposits.`;
+      return {
+        cause: 'Routine maintenance — intake cleaning recommended every 60,000 miles.',
+        correction: corrDetail
+      };
+    }
+  },
+  {
+    id: 'brake_flush',
+    name: 'Brake Flush',
+    cat: 'Fluids',
+    icon: 'ti-droplet-off',
+    fields: [
+      { id: 'fluid_spec', label: 'Fluid spec', type: 'toggle', options: ['DOT 3','DOT 4','DOT 5.1'] },
+      { id: 'fluid_source', label: 'Fluid brand', type: 'input', placeholder: 'e.g. Valvoline DOT 4', inputType: 'text', defaultValue: 'Valvoline DOT 4' },
+      { id: 'condition', label: 'Fluid condition', type: 'toggle', options: ['Discolored / contaminated','Due at 48k interval','Customer requested'] },
+    ],
+    generate(o) {
+      const spec = o.fluid_spec || 'DOT 4';
+      const brand = o.fluid_source || 'Valvoline DOT 4';
+      const cond = o.condition === 'Discolored / contaminated' ? 'Brake fluid found discolored and contaminated — flush required.' : 'Routine maintenance — brake fluid service recommended every 48,000 miles.';
+      return {
+        cause: cond,
+        correction: `Flushed brake hydraulic system using pressure bleeder. Bled all four corners in sequence until fresh ${spec} fluid visible at each caliper bleeder. Filled master cylinder reservoir to max with ${brand} ${spec} brake fluid. Verified firm pedal. No leaks noted.`
+      };
+    }
+  },
+  {
+    id: 'engine_air',
+    name: 'Engine Air Filter',
+    cat: 'Maintenance',
+    icon: 'ti-filter',
+    fields: [
+      { id: 'condition', label: 'Filter condition', type: 'toggle', options: ['Dirty / restricted','Heavily soiled','Torn / damaged'] },
+    ],
+    generate(o) {
+      const cond = o.condition || 'Dirty / restricted';
+      return {
+        cause: `Engine air filter found ${cond.toLowerCase()} — replacement recommended.`,
+        correction: `Removed and replaced engine air filter — found ${cond.toLowerCase()}. Installed new OEM-spec engine air filter. Reinstalled air box, secured all retaining clips and reconnected intake tube. Verified no vacuum leaks at intake connections after reassembly.`
+      };
+    }
+  },
+  {
+    id: 'cabin_air',
+    name: 'Cabin Air Filter',
+    cat: 'Maintenance',
+    icon: 'ti-air-conditioning',
+    fields: [
+      { id: 'condition', label: 'Filter condition', type: 'toggle', options: ['Heavily soiled','Dirty / restricted','Debris present'] },
+      { id: 'interval', label: 'Service basis', type: 'toggle', options: ['Due at 16k interval','Customer requested'] },
+    ],
+    generate(o) {
+      const cond = o.condition || 'Heavily soiled';
+      return {
+        cause: `Cabin air filter found ${cond.toLowerCase()} — replacement recommended. Service due every 16,000 miles.`,
+        correction: `Removed cabin air filter housing. Replaced cabin air filter — found ${cond.toLowerCase()}. Reinstalled housing cover and verified proper seating of all clips.`
+      };
+    }
+  },
+  {
+    id: 'battery',
+    name: 'Battery Replacement',
+    cat: 'Electrical',
+    icon: 'ti-battery-charging-2',
+    fields: [
+      { id: 'group', label: 'Battery group size', type: 'input', placeholder: 'e.g. 48 / H6', inputType: 'text' },
+      { id: 'test_result', label: 'Test result', type: 'toggle', options: ['Failed load test','Failed CCA below spec','Voltage too low — would not hold charge'] },
+      { id: 'charge_v', label: 'Alternator output voltage', type: 'input', placeholder: 'e.g. 14.2', inputType: 'text' },
+      { id: 'bms', label: 'BMS registration', type: 'toggle', options: ['Completed','Not required'] },
+    ],
+    generate(o) {
+      const grp = o.group || '{group size}';
+      const test = o.test_result || 'Failed load test';
+      const chargeV = o.charge_v || '{charge V}';
+      const bms = o.bms === 'Completed' ? ' Performed BMS / battery registration via scan tool.' : '';
+      return {
+        cause: `Battery load tested — ${test.toLowerCase()}. Replacement required.`,
+        correction: `Removed original battery. Installed new group ${grp} battery. Cleaned battery terminals and posts; applied anti-corrosion spray. Verified charging system output — alternator output ${chargeV}V, within spec.${bms}`
+      };
+    }
+  },
+  {
+    id: 'wipers',
+    name: 'Wiper Blades',
+    cat: 'Maintenance',
+    icon: 'ti-windmill',
+    fields: [
+      { id: 'condition', label: 'Old blade condition', type: 'toggle', options: ['Streaking','Skipping / chattering','Torn rubber','Worn / aged'] },
+      { id: 'driver_size', label: 'Driver size', type: 'input', placeholder: 'e.g. 26"', inputType: 'text' },
+      { id: 'pass_size', label: 'Passenger size', type: 'input', placeholder: 'e.g. 18"', inputType: 'text' },
+      { id: 'rear', label: 'Rear wiper', type: 'toggle', options: ['Replaced rear wiper','N/A — no rear wiper'] },
+      { id: 'rear_size', label: 'Rear wiper size (if replaced)', type: 'input', placeholder: 'e.g. 14"', inputType: 'text' },
+    ],
+    generate(o) {
+      const cond = o.condition || 'worn';
+      const d = o.driver_size || '{driver size}';
+      const p = o.pass_size || '{passenger size}';
+      const rearReplaced = o.rear === 'Replaced rear wiper';
+      const rearNote = rearReplaced ? ` Replaced rear wiper blade with ${o.rear_size || '{rear size}'} blade.` : '';
+      return {
+        cause: `Wiper blades found ${cond.toLowerCase()} — replacement recommended.`,
+        correction: `Removed worn wiper blades. Installed new ${d} driver and ${p} passenger wiper blades per OEM spec. Tested wiper operation on all speed settings — wipers clear cleanly.${rearNote}`
+      };
+    }
+  },
+  {
+    id: 'brake_inspect',
+    name: 'Brake Inspection',
+    cat: 'Brakes',
+    icon: 'ti-circle',
+    fields: [
+      { id: 'front_mm', label: 'Front pad thickness (mm)', type: 'input', placeholder: 'e.g. 6', inputType: 'text' },
+      { id: 'rear_mm', label: 'Rear pad thickness (mm)', type: 'input', placeholder: 'e.g. 4', inputType: 'text' },
+      { id: 'rotor_front', label: 'Front rotor condition', type: 'toggle', options: ['Within spec','At min thickness','Scoring noted','Recommend replacement'] },
+      { id: 'rotor_rear', label: 'Rear rotor condition', type: 'toggle', options: ['Within spec','At min thickness','Scoring noted','Recommend replacement'] },
+      { id: 'fluid', label: 'Brake fluid condition', type: 'toggle', options: ['Good','Discolored — recommend flush'] },
+      { id: 'lines', label: 'Lines / hoses', type: 'toggle', options: ['No issues noted','Seepage noted — recommend replacement'] },
+    ],
+    generate(o) {
+      const fmm = o.front_mm || '{front mm}';
+      const rmm = o.rear_mm || '{rear mm}';
+      const rotorF = o.rotor_front || 'Within spec';
+      const rotorR = o.rotor_rear || 'Within spec';
+      const fluid = o.fluid || 'Good';
+      const lines = o.lines || 'No issues noted';
+      return {
+        cause: 'Brake inspection performed per customer request / maintenance schedule.',
+        correction: `Performed full brake system inspection. Front brake pads: ${fmm}mm remaining. Rear brake pads: ${rmm}mm remaining. Front rotors: ${rotorF.toLowerCase()}. Rear rotors: ${rotorR.toLowerCase()}. Brake fluid condition: ${fluid.toLowerCase()}. Brake lines and flexible hoses: ${lines.toLowerCase()}. Parking brake functional and adjusted.`
+      };
+    }
+  },
+  {
+    id: 'ac_diag',
+    name: 'AC Diagnosis',
+    cat: 'HVAC',
+    icon: 'ti-snowflake',
+    fields: [
+      { id: 'refrigerant', label: 'Refrigerant type', type: 'toggle', options: ['R-134a','R-1234yf'] },
+      { id: 'static_high', label: 'Static high-side (PSI)', type: 'input', placeholder: 'e.g. 85', inputType: 'text' },
+      { id: 'static_low', label: 'Static low-side (PSI)', type: 'input', placeholder: 'e.g. 85', inputType: 'text' },
+      { id: 'run_high', label: 'Running high-side (PSI)', type: 'input', placeholder: 'e.g. 220', inputType: 'text' },
+      { id: 'run_low', label: 'Running low-side (PSI)', type: 'input', placeholder: 'e.g. 35', inputType: 'text' },
+      { id: 'compressor', label: 'Compressor operation', type: 'toggle', options: ['Clutch engages normally','Clutch not engaging','Cycles rapidly — overcharge/undercharge','Compressor noise noted'] },
+      { id: 'leaks', label: 'Leak check', type: 'toggle', options: ['No obvious leaks noted','Leak detected — see notes','UV dye added for trace'] },
+      { id: 'leak_location', label: 'Leak location (if found)', type: 'input', placeholder: 'e.g. Condenser, front seal', inputType: 'text' },
+      { id: 'recovered', label: 'Refrigerant recovered (oz)', type: 'input', placeholder: 'e.g. 14', inputType: 'text' },
+      { id: 'filled', label: 'Refrigerant added (oz)', type: 'input', placeholder: 'e.g. 20', inputType: 'text' },
+      { id: 'duct_temp', label: 'Duct temp after charge (°F)', type: 'input', placeholder: 'e.g. 42', inputType: 'text' },
+      { id: 'concern', label: 'Customer concern', type: 'toggle', options: ['Not cooling','Warm air only','Intermittent cooling','Noise from AC'] },
+    ],
+    generate(o) {
+      const ref = o.refrigerant || 'R-134a';
+      const sh = o.static_high || '{static high}';
+      const sl = o.static_low || '{static low}';
+      const rh = o.run_high || '{running high}';
+      const rl = o.run_low || '{running low}';
+      const comp = o.compressor || '{compressor operation}';
+      const leak = o.leaks || 'No obvious leaks noted';
+      const leakLoc = (o.leak_location && leak !== 'No obvious leaks noted') ? ` Location: ${o.leak_location}.` : '';
+      const recovered = o.recovered ? `${o.recovered} oz` : '{recovered}';
+      const filled = o.filled ? `${o.filled} oz` : '{filled}';
+      const ductTemp = o.duct_temp ? `${o.duct_temp}°F` : '{duct temp}';
+      const concern = o.concern || 'not cooling';
+      return {
+        cause: `Customer states AC ${concern.toLowerCase()}. Performed AC system diagnosis.`,
+        correction: `Connected ${ref} manifold gauge set. Static pressures — high side: ${sh} PSI, low side: ${sl} PSI. Started vehicle and enabled AC. Running pressures — high side: ${rh} PSI, low side: ${rl} PSI. Compressor operation: ${comp.toLowerCase()}. Leak check: ${leak.toLowerCase()}.${leakLoc} Recovered ${recovered} of ${ref} refrigerant. Evacuated system to 500 microns. Recharged system with ${filled} ${ref}. Verified duct temperature at ${ductTemp} after charge.`
+      };
+    }
+  },
+];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let jobs = JSON.parse(localStorage.getItem('techJobs') || '[]');
+let editIndex = -1;
+let currentWeekOffset = 0;
+let activeTemplateId = null;
+let optionValues = {}; // { fieldId: value }
+let queue = []; // [{ name, cause, correction }]
+let activeOutputTab = 'cause';
+
+// ─── Tabs ─────────────────────────────────────────────────────────────────────
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-page').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'log') renderLog();
+  if (name === 'summary') renderSummary();
+}
+
+// ─── Template List ────────────────────────────────────────────────────────────
+function renderTemplateList(filter) {
+  const list = document.getElementById('tmpl-list');
+  const filtered = filter
+    ? TEMPLATES.filter(t => t.name.toLowerCase().includes(filter) || t.cat.toLowerCase().includes(filter))
+    : TEMPLATES;
+  list.innerHTML = filtered.map(t =>
+    `<button class="tmpl-item ${activeTemplateId === t.id ? 'active' : ''}" onclick="selectTemplate('${t.id}')">
+      <i class="ti ${t.icon}"></i>
+      <span>${t.name}</span>
+      <span class="tmpl-cat">${t.cat}</span>
+    </button>`
+  ).join('');
+}
+
+function filterTemplates() {
+  const q = document.getElementById('tmpl-search').value.toLowerCase().trim();
+  renderTemplateList(q || null);
+}
+
+function selectTemplate(id) {
+  activeTemplateId = id;
+  optionValues = {};
+  renderTemplateList(document.getElementById('tmpl-search').value.toLowerCase().trim() || null);
+  buildOptionsPanel();
+  generateOutput();
+  document.getElementById('builder-empty').style.display = 'none';
+  document.getElementById('options-card').style.display = '';
+  document.getElementById('output-section').style.display = '';
+}
+
+// ─── Options Panel ────────────────────────────────────────────────────────────
+function buildOptionsPanel() {
+  const tmpl = TEMPLATES.find(t => t.id === activeTemplateId);
+  if (!tmpl) return;
+  document.getElementById('opt-icon').className = `ti ${tmpl.icon}`;
+  document.getElementById('opt-title').textContent = tmpl.name;
+  document.getElementById('opt-cat').textContent = tmpl.cat;
+
+  // Pre-fill defaults
+  tmpl.fields.forEach(f => {
+    if (f.defaultValue && !optionValues[f.id]) optionValues[f.id] = f.defaultValue;
+  });
+
+  const body = document.getElementById('opt-body');
+  body.innerHTML = `<div class="options-grid" id="opts-inner"></div>`;
+  const inner = document.getElementById('opts-inner');
+
+  tmpl.fields.forEach(f => {
+    const wrap = document.createElement('div');
+    wrap.className = `opt-group${(f.type === 'multicheck' || f.type === 'toggle') ? ' full' : ''}`;
+    const label = document.createElement('label');
+    label.textContent = f.label;
+    wrap.appendChild(label);
+
+    if (f.type === 'toggle') {
+      const tg = document.createElement('div');
+      tg.className = 'toggle-group';
+      f.options.forEach(opt => {
+        const pill = document.createElement('span');
+        pill.className = `toggle-pill ${optionValues[f.id] === opt ? 'selected' : ''}`;
+        pill.textContent = opt;
+        pill.onclick = () => {
+          optionValues[f.id] = opt;
+          buildOptionsPanel();
+          generateOutput();
+        };
+        tg.appendChild(pill);
+      });
+      wrap.appendChild(tg);
+    } else if (f.type === 'multicheck') {
+      const ct = document.createElement('div');
+      ct.className = 'check-tiles';
+      f.options.forEach(opt => {
+        const tile = document.createElement('span');
+        const selected = Array.isArray(optionValues[f.id]) && optionValues[f.id].includes(opt);
+        tile.className = `check-tile ${selected ? 'selected' : ''}`;
+        tile.innerHTML = `<i class="ti ${selected ? 'ti-check' : 'ti-circle'}" style="font-size:12px;"></i>${opt}`;
+        tile.onclick = () => {
+          if (!Array.isArray(optionValues[f.id])) optionValues[f.id] = [];
+          const idx = optionValues[f.id].indexOf(opt);
+          if (idx >= 0) optionValues[f.id].splice(idx, 1);
+          else optionValues[f.id].push(opt);
+          buildOptionsPanel();
+          generateOutput();
+        };
+        ct.appendChild(tile);
+      });
+      wrap.appendChild(ct);
+    } else if (f.type === 'input') {
+      const inp = document.createElement('input');
+      inp.type = f.inputType || 'text';
+      inp.placeholder = f.placeholder || '';
+      inp.value = optionValues[f.id] || '';
+      inp.oninput = () => {
+        optionValues[f.id] = inp.value;
+        generateOutput();
+      };
+      wrap.appendChild(inp);
+    }
+
+    inner.appendChild(wrap);
+  });
+}
+
+// ─── Output ───────────────────────────────────────────────────────────────────
+function generateOutput() {
+  const tmpl = TEMPLATES.find(t => t.id === activeTemplateId);
+  if (!tmpl) return;
+  const result = tmpl.generate(optionValues);
+  document.getElementById('out-cause').value = result.cause;
+  document.getElementById('out-correction').value = result.correction;
+}
+
+function switchOutputTab(tab, el) {
+  activeOutputTab = tab;
+  document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('out-cause-wrap').style.display = tab === 'cause' ? '' : 'none';
+  document.getElementById('out-corr-wrap').style.display = tab === 'correction' ? '' : 'none';
+}
+
+function copyActive() {
+  const val = activeOutputTab === 'cause'
+    ? document.getElementById('out-cause').value
+    : document.getElementById('out-correction').value;
+  navigator.clipboard.writeText(val).then(() => {
+    const el = document.getElementById('copy-success');
+    el.style.display = 'flex';
+    setTimeout(() => el.style.display = 'none', 2000);
+  });
+}
+
+// ─── Queue ────────────────────────────────────────────────────────────────────
+function addToQueue() {
+  const tmpl = TEMPLATES.find(t => t.id === activeTemplateId);
+  if (!tmpl) return;
+  const cause = document.getElementById('out-cause').value.trim();
+  const correction = document.getElementById('out-correction').value.trim();
+  if (!cause && !correction) { showToast('Generate output first', 'info'); return; }
+  queue.push({ name: tmpl.name, cause, correction });
+  renderQueue();
+  showToast(`${tmpl.name} added to queue`, 'success');
+}
+
+function renderQueue() {
+  const list = document.getElementById('queue-list');
+  document.getElementById('queue-count').textContent = queue.length;
+  if (!queue.length) {
+    list.innerHTML = '<div class="queue-empty">No services queued — build a template and add it above.</div>';
+    return;
+  }
+  list.innerHTML = queue.map((item, i) => `
+    <div class="queue-item">
+      <div style="flex:1; min-width:0;">
+        <div class="queue-item-name">${item.name}</div>
+        <div class="queue-item-cause"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);">Cause: </span>${item.cause}</div>
+        <div class="queue-item-corr"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);">Correction: </span>${item.correction}</div>
+      </div>
+      <button class="queue-remove" onclick="removeFromQueue(${i})"><i class="ti ti-x"></i></button>
+    </div>
+  `).join('');
+}
+
+function removeFromQueue(i) {
+  queue.splice(i, 1);
+  renderQueue();
+}
+
+function clearQueue() {
+  if (queue.length && !confirm('Clear all queued services?')) return;
+  queue = [];
+  renderQueue();
+}
+
+function sendQueueToRO() {
+  if (!queue.length) { showToast('Queue is empty', 'info'); return; }
+  const causes = queue.map(item => item.cause).filter(Boolean).join('\n');
+  const corrections = queue.map(item => `${item.name}: ${item.correction}`).filter(Boolean).join('\n\n');
+  const existing_findings = document.getElementById('ro-findings').value.trim();
+  const existing_work = document.getElementById('ro-work').value.trim();
+  document.getElementById('ro-findings').value = existing_findings ? existing_findings + '\n' + causes : causes;
+  document.getElementById('ro-work').value = existing_work ? existing_work + '\n\n' + corrections : corrections;
+  autosaveRO();
+  showToast(`${queue.length} service(s) sent to RO notepad`, 'success');
+  queue = [];
+  renderQueue();
+  showTab('ro', document.querySelectorAll('.nav-btn')[1]);
+}
+
+// ─── Request Templates Modal ──────────────────────────────────────────────────
+function openRequestModal() { document.getElementById('request-modal').classList.add('open'); }
+function closeRequestModal() { document.getElementById('request-modal').classList.remove('open'); }
+function submitTemplateRequest() {
+  const txt = document.getElementById('request-text').value.trim();
+  if (!txt) return;
+  closeRequestModal();
+  const prompt = `I'm an automotive technician. Please write detailed service sign-out templates with both a CAUSE and CORRECTION section for each of the following procedures. Use Valvoline products where applicable (no BG products). Include relevant placeholders in {curly_braces} for specs that vary. Procedures:\n\n${txt}`;
+  window.open(`https://claude.ai/new?q=${encodeURIComponent(prompt)}`, '_blank');
+}
+
+// ─── RO Notepad ──────────────────────────────────────────────────────────────
+function autosaveRO() {
+  const data = {
+    num: document.getElementById('ro-num').value,
+    date: document.getElementById('ro-date').value,
+    vehicle: document.getElementById('ro-vehicle').value,
+    vin: document.getElementById('ro-vin').value,
+    sw: document.getElementById('ro-sw').value,
+    miles: document.getElementById('ro-miles').value,
+    concern: document.getElementById('ro-concern').value,
+    codes: document.getElementById('ro-codes').value,
+    findings: document.getElementById('ro-findings').value,
+    work: document.getElementById('ro-work').value,
+    hours: document.getElementById('ro-hours').value,
+    status: document.getElementById('ro-status').value,
+  };
+  localStorage.setItem('techRO_draft', JSON.stringify(data));
+  const label = document.getElementById('autosave-label');
+  const now = new Date();
+  label.textContent = `Saved ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+}
+
+function loadRODraft() {
+  const raw = localStorage.getItem('techRO_draft');
+  if (!raw) { document.getElementById('ro-date').value = new Date().toISOString().split('T')[0]; return; }
+  const d = JSON.parse(raw);
+  document.getElementById('ro-num').value = d.num || '';
+  document.getElementById('ro-date').value = d.date || new Date().toISOString().split('T')[0];
+  document.getElementById('ro-vehicle').value = d.vehicle || '';
+  document.getElementById('ro-vin').value = d.vin || '';
+  document.getElementById('ro-sw').value = d.sw || '';
+  document.getElementById('ro-miles').value = d.miles || '';
+  document.getElementById('ro-concern').value = d.concern || '';
+  document.getElementById('ro-codes').value = d.codes || '';
+  document.getElementById('ro-findings').value = d.findings || '';
+  document.getElementById('ro-work').value = d.work || '';
+  document.getElementById('ro-hours').value = d.hours || '';
+  document.getElementById('ro-status').value = d.status || 'done';
+}
+
+function clearRO() {
+  if (!confirm('Clear the current RO notepad? Saved log entries are not affected.')) return;
+  localStorage.removeItem('techRO_draft');
+  ['ro-num','ro-vehicle','ro-vin','ro-sw','ro-miles','ro-concern','ro-codes','ro-findings','ro-work','ro-hours'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ro-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('ro-status').value = 'done';
+  document.getElementById('autosave-label').textContent = 'Auto-saved';
+  showToast('RO cleared — ready for new job', 'info');
+}
+
+function saveROToLog() {
+  const get = id => document.getElementById(id).value.trim();
+  const ro = get('ro-num'), vehicle = get('ro-vehicle');
+  if (!ro && !vehicle) { showToast('Add RO # or vehicle name first', 'info'); return; }
+  const job = {
+    id: Date.now(),
+    date: get('ro-date') || new Date().toISOString().split('T')[0],
+    ro: ro || '—',
+    vehicle: vehicle || '—',
+    vin: get('ro-vin'),
+    sw: get('ro-sw'),
+    miles: get('ro-miles'),
+    concern: get('ro-concern') || '—',
+    codes: get('ro-codes') || '',
+    findings: get('ro-findings'),
+    work: get('ro-work'),
+    hours: parseFloat(get('ro-hours')) || 0,
+    status: document.getElementById('ro-status').value,
+  };
+  jobs.push(job);
+  saveJobs();
+  showToast('Job added to work log', 'success');
+  updateLogBadge();
+}
+
+// ─── Work Log ─────────────────────────────────────────────────────────────────
+function saveJobs() { localStorage.setItem('techJobs', JSON.stringify(jobs)); }
+
+const STATUS_LABEL = { done: 'Completed', wip: 'Waiting on Parts', customer: 'Waiting on Customer', review: 'Needs Review' };
+const STATUS_CLASS = { done: 'pill-done', wip: 'pill-parts', customer: 'pill-customer', review: 'pill-review' };
+
+function renderLog() {
+  const search = (document.getElementById('log-search').value || '').toLowerCase();
+  const filter = document.getElementById('log-filter').value;
+  let list = jobs.filter(j => {
+    const match = !search || [j.ro, j.vehicle, j.concern, j.codes, j.findings].join(' ').toLowerCase().includes(search);
+    const statusMatch = !filter || j.status === filter;
+    return match && statusMatch;
+  }).slice().reverse();
+
+  const empty = document.getElementById('log-empty');
+  const wrap = document.getElementById('log-table-wrap');
+  document.getElementById('log-count-label').textContent = `${list.length} job${list.length !== 1 ? 's' : ''}`;
+
+  if (!list.length) { empty.style.display = 'block'; wrap.style.display = 'none'; return; }
+  empty.style.display = 'none'; wrap.style.display = 'block';
+
+  document.getElementById('log-tbody').innerHTML = list.map(j => {
+    const realIndex = jobs.indexOf(j);
+    return `<tr>
+      <td style="white-space:nowrap;font-size:12px;color:var(--text2);">${j.date}</td>
+      <td class="td-ro">${j.ro}</td>
+      <td class="td-vehicle">${j.vehicle}</td>
+      <td class="td-notes">${j.concern}</td>
+      <td style="font-size:12px;color:var(--text2);font-family:'DM Mono',monospace;">${j.codes || '—'}</td>
+      <td>${j.hours ? `<span class="hours-badge"><i class="ti ti-clock" style="font-size:11px;"></i>${j.hours.toFixed(1)}</span>` : '<span style="color:var(--text3);">—</span>'}</td>
+      <td><span class="pill ${STATUS_CLASS[j.status] || 'pill-done'}">${STATUS_LABEL[j.status] || j.status}</span></td>
+      <td class="td-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openEditModal(${realIndex})"><i class="ti ti-pencil"></i></button>
+        <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteJob(${realIndex})"><i class="ti ti-trash"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function deleteJob(index) {
+  if (!confirm(`Delete RO ${jobs[index].ro} — ${jobs[index].vehicle}?`)) return;
+  jobs.splice(index, 1);
+  saveJobs();
+  renderLog();
+  updateLogBadge();
+  showToast('Job deleted', 'info');
+}
+
+function updateLogBadge() { document.getElementById('log-nav-count').textContent = jobs.length; }
+
+function exportCSV() {
+  if (!jobs.length) { showToast('No jobs to export yet', 'info'); return; }
+  const headers = ['Date','RO #','Vehicle','VIN','Service Writer','Mileage In','Concern','Codes','Findings/Cause','Work Performed/Correction','Hours Flagged','Status'];
+  const rows = jobs.map(j => [j.date,j.ro,j.vehicle,j.vin,j.sw,j.miles,j.concern,j.codes,j.findings,j.work,j.hours,STATUS_LABEL[j.status]||j.status].map(v => `"${(v||'').toString().replace(/"/g,'""')}"`).join(','));
+  downloadFile('work_log.csv', [headers.join(','), ...rows].join('\n'), 'text/csv');
+  showToast('CSV exported', 'success');
+}
+
+// ─── Edit Modal ───────────────────────────────────────────────────────────────
+function openEditModal(index) {
+  editIndex = index;
+  const j = jobs[index];
+  document.getElementById('edit-ro-num').value = j.ro === '—' ? '' : j.ro;
+  document.getElementById('edit-ro-date').value = j.date;
+  document.getElementById('edit-ro-vehicle').value = j.vehicle === '—' ? '' : j.vehicle;
+  document.getElementById('edit-ro-vin').value = j.vin || '';
+  document.getElementById('edit-ro-sw').value = j.sw || '';
+  document.getElementById('edit-ro-miles').value = j.miles || '';
+  document.getElementById('edit-ro-concern').value = j.concern === '—' ? '' : j.concern;
+  document.getElementById('edit-ro-codes').value = j.codes || '';
+  document.getElementById('edit-ro-findings').value = j.findings || '';
+  document.getElementById('edit-ro-work').value = j.work || '';
+  document.getElementById('edit-ro-hours').value = j.hours || '';
+  document.getElementById('edit-ro-status').value = j.status || 'done';
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeEditModal() { document.getElementById('edit-modal').classList.remove('open'); editIndex = -1; }
+
+function saveEdit() {
+  if (editIndex < 0) return;
+  const get = id => document.getElementById(id).value.trim();
+  jobs[editIndex] = {
+    ...jobs[editIndex],
+    ro: get('edit-ro-num') || '—',
+    date: get('edit-ro-date'),
+    vehicle: get('edit-ro-vehicle') || '—',
+    vin: get('edit-ro-vin'),
+    sw: get('edit-ro-sw'),
+    miles: get('edit-ro-miles'),
+    concern: get('edit-ro-concern') || '—',
+    codes: get('edit-ro-codes'),
+    findings: get('edit-ro-findings'),
+    work: get('edit-ro-work'),
+    hours: parseFloat(get('edit-ro-hours')) || 0,
+    status: document.getElementById('edit-ro-status').value,
+  };
+  saveJobs();
+  closeEditModal();
+  renderLog();
+  renderSummary();
+  showToast('Job updated', 'success');
+}
+
+// ─── Weekly Summary ───────────────────────────────────────────────────────────
+function getWeekBounds(offset) {
+  const now = new Date();
+  const day = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((day === 0 ? 7 : day) - 1) + offset * 7);
+  monday.setHours(0,0,0,0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23,59,59,999);
+  return { monday, sunday };
+}
+
+function renderSummary() {
+  const { monday, sunday } = getWeekBounds(currentWeekOffset);
+  const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  document.getElementById('week-label').textContent = `${fmt(monday)} – ${fmt(sunday)}`;
+  const weekJobs = jobs.filter(j => { const d = new Date(j.date + 'T12:00:00'); return d >= monday && d <= sunday; });
+  const totalHours = weekJobs.reduce((s, j) => s + (j.hours || 0), 0);
+  const completed = weekJobs.filter(j => j.status === 'done').length;
+  const review = weekJobs.filter(j => j.status === 'review').length;
+  document.getElementById('summary-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total jobs</div><div class="stat-value">${weekJobs.length}</div><div class="stat-sub">this week</div></div>
+    <div class="stat-card"><div class="stat-label">Hours flagged</div><div class="stat-value">${totalHours.toFixed(1)}</div><div class="stat-sub">total</div></div>
+    <div class="stat-card"><div class="stat-label">Completed</div><div class="stat-value">${completed}</div><div class="stat-sub">jobs</div></div>
+    <div class="stat-card"><div class="stat-label">Needs review</div><div class="stat-value">${review}</div><div class="stat-sub">jobs</div></div>
+  `;
+  const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const rows = days.map((name, i) => {
+    const dayDate = new Date(monday);
+    dayDate.setDate(monday.getDate() + i);
+    const iso = dayDate.toISOString().split('T')[0];
+    const dayJobs = weekJobs.filter(j => j.date === iso);
+    const hrs = dayJobs.reduce((s,j) => s + (j.hours||0), 0);
+    const vehicles = [...new Set(dayJobs.map(j => j.vehicle))].filter(v => v !== '—').join(', ');
+    const isToday = iso === new Date().toISOString().split('T')[0];
+    return `<tr ${isToday ? 'style="background:var(--accent-light);"' : ''}>
+      <td style="font-weight:${isToday?'600':'400'};font-size:13px;">${name}${isToday ? ' <span style="font-size:11px;color:var(--accent);font-weight:500;">today</span>' : ''}</td>
+      <td>${dayJobs.length || '<span style="color:var(--text3);">—</span>'}</td>
+      <td>${hrs > 0 ? `<span class="hours-badge"><i class="ti ti-clock" style="font-size:11px;"></i>${hrs.toFixed(1)}</span>` : '<span style="color:var(--text3);">—</span>'}</td>
+      <td style="font-size:12px;color:var(--text2);">${vehicles || '<span style="color:var(--text3);">—</span>'}</td>
+    </tr>`;
+  });
+  document.getElementById('summary-tbody').innerHTML = rows.join('');
+}
+
+function changeWeek(dir) { currentWeekOffset += dir; renderSummary(); }
+
+function exportWeekCSV() {
+  const { monday, sunday } = getWeekBounds(currentWeekOffset);
+  const weekJobs = jobs.filter(j => { const d = new Date(j.date + 'T12:00:00'); return d >= monday && d <= sunday; });
+  if (!weekJobs.length) { showToast('No jobs this week to export', 'info'); return; }
+  const headers = ['Date','RO #','Vehicle','Concern','Codes','Hours','Status'];
+  const rows = weekJobs.map(j => [j.date,j.ro,j.vehicle,j.concern,j.codes,j.hours,STATUS_LABEL[j.status]||j.status].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(','));
+  downloadFile('week_summary.csv', [headers.join(','),...rows].join('\n'), 'text/csv');
+  showToast('Week CSV exported', 'success');
+}
+
+// ─── Utilities ────────────────────────────────────────────────────────────────
+function downloadFile(name, content, mime) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+  a.download = name;
+  a.click();
+}
+
+let toastTimer;
+function showToast(msg, type='info') {
+  const el = document.getElementById('toast');
+  const icon = el.querySelector('i');
+  document.getElementById('toast-msg').textContent = msg;
+  el.className = `toast ${type}`;
+  icon.className = type === 'success' ? 'ti ti-check' : 'ti ti-info-circle';
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+document.getElementById('edit-modal').addEventListener('click', e => { if(e.target === e.currentTarget) closeEditModal(); });
+document.getElementById('request-modal').addEventListener('click', e => { if(e.target === e.currentTarget) closeRequestModal(); });
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+renderTemplateList();
+renderQueue();
+loadRODraft();
+updateLogBadge();
+</script>
 </body>
 </html>
