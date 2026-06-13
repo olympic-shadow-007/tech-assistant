@@ -653,7 +653,7 @@ const TEMPLATES = [
     cat: 'Fluids',
     icon: 'ti-temperature',
     fields: [
-      { id: 'coolant_spec', label: 'Coolant type', type: 'toggle', options: ['Valvoline Zerex G-05','Valvoline Zerex G-48','Valvoline Zerex Asian Vehicle Red','Valvoline Zerex Asian Vehicle Blue','OAT (orange)','HOAT (yellow)'] },
+      { id: 'coolant_spec', label: 'Coolant type', type: 'toggle', options: ['Kia Green (OEM)','Kia Pink (OEM)','Valvoline Zerex G-05','Valvoline Zerex G-48','Valvoline Zerex Asian Vehicle Red','Valvoline Zerex Asian Vehicle Blue','OAT (orange)','HOAT (yellow)'] },
       { id: 'coolant_qty', label: 'Total capacity (qts)', type: 'input', placeholder: 'e.g. 8', inputType: 'text' },
       { id: 'mileage', label: 'Mileage interval', type: 'toggle', options: ['Due at 60k interval','Customer requested','Contaminated / discolored'] },
     ],
@@ -959,7 +959,8 @@ function buildOptionsPanel() {
         pill.className = `toggle-pill ${optionValues[f.id] === opt ? 'selected' : ''}`;
         pill.textContent = opt;
         pill.onclick = () => {
-          optionValues[f.id] = opt;
+          // Clicking the already-selected pill deselects it (clears the value)
+          optionValues[f.id] = optionValues[f.id] === opt ? undefined : opt;
           buildOptionsPanel();
           generateOutput();
         };
