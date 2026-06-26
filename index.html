@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kia Service Tech Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="kia-wordmark"><span class="mark">KIA</span></div>
+      <div class="sub">Service Tech Assistant</div>
+      <div class="tagline">Movement that inspires</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Tools</div>
+      <button class="nav-btn active" onclick="showTab('templates',this)"><i class="ti ti-clipboard-list"></i><span>Templates</span></button>
+      <button class="nav-btn" onclick="showTab('ai',this)"><i class="ti ti-sparkles"></i><span>AI Prompt Builder</span></button>
+      <button class="nav-btn" onclick="showTab('ro',this)"><i class="ti ti-file-description"></i><span>RO Notepad</span></button>
+      <button class="nav-btn" onclick="showTab('log',this)"><i class="ti ti-list-details"></i><span>Work Log</span><span class="nav-badge" id="log-nav-count">0</span></button>
+      <button class="nav-btn" onclick="showTab('summary',this)"><i class="ti ti-chart-bar"></i><span>Summary</span></button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="swatches" title="Kia color system">
+        <span style="background:#05141F;"></span>
+        <span style="background:#FFFFFF;"></span>
+        <span style="background:#EA0029;"></span>
+        <span style="background:#1f3a5f;"></span>
+        <span style="background:#1e3329;"></span>
+      </div>
+      Service Tech Assistant v3.0
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ══ TEMPLATES ══ -->
+    <div class="tab-page active" id="tab-templates">
+      <div class="page-header">
+        <h1>Service templates</h1>
+        <div class="actions">
+          <button class="btn btn-accent" onclick="openRequestModal()"><i class="ti ti-sparkles"></i>Request templates</button>
+        </div>
+      </div>
+      <div class="page-body">
+        <div class="builder-layout">
+          <!-- Left: template list -->
+          <div>
+            <div class="tmpl-search-wrap">
+              <input type="text" id="tmpl-search" placeholder="Search templates…" oninput="filterTemplates()" autocomplete="off">
+            </div>
+            <div class="tmpl-list" id="tmpl-list"></div>
+          </div>
+
+          <!-- Right: builder + queue -->
+          <div class="builder-panel">
+            <div id="builder-empty" class="builder-empty card">
+              <i class="ti ti-layout-cards"></i>
+              <p>Select a service template on the left to build your Cause &amp; Correction.</p>
+            </div>
+
+            <!-- Options card — hidden until template selected -->
+            <div class="options-card" id="options-card" style="display:none;">
+              <div class="options-header">
+                <i class="ti ti-settings-2" id="opt-icon"></i>
+                <h2 id="opt-title">Template</h2>
+                <span class="tmpl-sub" id="opt-cat"></span>
+              </div>
+              <div class="options-body" id="opt-body"></div>
+            </div>
+
+            <!-- Output -->
+            <div class="output-section" id="output-section" style="display:none;">
+              <div class="output-tabs">
+                <div class="output-tab active" onclick="switchOutputTab('cause',this)">Cause</div>
+                <div class="output-tab" onclick="switchOutputTab('correction',this)">Correction</div>
+              </div>
+              <div class="output-body">
+                <div id="out-cause-wrap">
+                  <div class="output-label">Tech Findings / Cause</div>
+                  <textarea class="output-area" id="out-cause" rows="3"></textarea>
+                </div>
+                <div id="out-corr-wrap" style="display:none;">
+                  <div class="output-label">Work Performed / Correction</div>
+                  <textarea class="output-area" id="out-correction" rows="4"></textarea>
+                </div>
+              </div>
+              <div class="output-actions">
+                <button class="btn btn-accent" onclick="generateOutput()"><i class="ti ti-refresh"></i>Generate</button>
+                <button class="btn btn-green" onclick="addToQueue()"><i class="ti ti-plus"></i>Add to queue</button>
+                <button class="btn btn-ghost btn-sm" onclick="copyActive()"><i class="ti ti-copy"></i>Copy</button>
+                <span class="copy-success" id="copy-success"><i class="ti ti-check"></i>Copied!</span>
+              </div>
+            </div>
+
+            <!-- Queue -->
+            <div class="queue-section" id="queue-section">
+              <div class="queue-header">
+                <h3><i class="ti ti-stack-2" style="font-size:15px;color:var(--accent);"></i> Service queue <span class="queue-count" id="queue-count">0</span></h3>
+              </div>
+              <div class="queue-list" id="queue-list">
+                <div class="queue-empty">No services queued — build a template and add it above.</div>
+              </div>
+              <div class="queue-footer">
+                <button class="btn btn-accent" onclick="sendQueueToRO()"><i class="ti ti-arrow-right"></i>Send all to RO notepad</button>
+                <button class="btn btn-ghost btn-sm" onclick="clearQueue()"><i class="ti ti-trash"></i>Clear queue</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ AI STORY WRITER ══ -->
+    <div class="tab-page" id="tab-ai">
+      <div class="page-header">
+        <h1>AI Prompt Builder</h1>
+        <div class="actions"></div>
+      </div>
+      <div class="page-body">
+        <div class="card" style="max-width:780px;">
+          <div class="card-body">
+            <p style="font-size:13px; color:var(--text2); margin-bottom:16px;">Fill in your notes, generate a ready-to-paste prompt, then take it to Gemini, ChatGPT, Claude, or whatever AI you have handy.</p>
+            <div class="form-group full" style="margin-bottom:14px;">
+              <label>Customer states</label>
+              <textarea id="ai-input-customer" placeholder="e.g. Customer states AC and heat aren't blowing through the vents." style="min-height:70px;" oninput="generatePromptText()"></textarea>
+            </div>
+            <div class="form-group full" style="margin-bottom:14px;">
+              <label>Diagnosis / what you found</label>
+              <textarea id="ai-input-diagnosis" placeholder="e.g. Inspected and found the blower motor has failed internally. Tested resistance at motor, checked fuse and relay — both good. Motor draws no current." style="min-height:90px;" oninput="generatePromptText()"></textarea>
+            </div>
+            <div class="form-group full" style="margin-bottom:14px;">
+              <label>Recommendation / work performed</label>
+              <textarea id="ai-input-recommendation" placeholder="e.g. Recommend replacing blower motor." style="min-height:70px;" oninput="generatePromptText()"></textarea>
+            </div>
+            <div class="form-group full" style="margin-bottom:14px;">
+              <label>This story is for a…</label>
+              <select id="ai-context" onchange="generatePromptText()">
+                <option value="recommendation">Recommended service (not yet performed)</option>
+                <option value="completed">Completed service (already performed)</option>
+              </select>
+            </div>
+
+            <div class="output-section" id="ai-output-section">
+              <div class="output-body">
+                <div class="output-label">Prompt — copy this and paste it into your AI of choice</div>
+                <textarea class="output-area" id="ai-prompt-output" rows="10" readonly></textarea>
+              </div>
+              <div class="output-actions">
+                <button class="btn btn-accent" onclick="copyPromptText()"><i class="ti ti-copy"></i>Copy prompt</button>
+                <span class="copy-success" id="ai-copy-success"><i class="ti ti-check"></i>Copied!</span>
+              </div>
+            </div>
+
+            <div class="section-rule" style="margin-top:20px;">Paste the AI's response back here</div>
+            <div class="output-section" style="margin-top:10px;">
+              <div class="output-tabs">
+                <div class="output-tab active" onclick="switchAIOutputTab('cause',this)">Cause</div>
+                <div class="output-tab" onclick="switchAIOutputTab('correction',this)">Correction</div>
+              </div>
+              <div class="output-body">
+                <div id="ai-out-cause-wrap">
+                  <div class="output-label">Cause <span id="ai-cause-count" style="font-weight:400; text-transform:none; color:var(--text3);"></span></div>
+                  <textarea class="output-area" id="ai-out-cause" rows="4" oninput="updateAICharCounts()" placeholder="Paste the cause story here…"></textarea>
+                </div>
+                <div id="ai-out-corr-wrap" style="display:none;">
+                  <div class="output-label">Correction <span id="ai-corr-count" style="font-weight:400; text-transform:none; color:var(--text3);"></span></div>
+                  <textarea class="output-area" id="ai-out-correction" rows="6" oninput="updateAICharCounts()" placeholder="Paste the correction story here…"></textarea>
+                </div>
+              </div>
+              <div class="output-actions">
+                <button class="btn btn-green" onclick="addAIToQueue()"><i class="ti ti-plus"></i>Add to queue</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reuse the same queue UI for AI-generated stories -->
+        <div class="queue-section" style="max-width:780px; margin-top:18px;">
+          <div class="queue-header">
+            <h3><i class="ti ti-stack-2" style="font-size:15px;color:var(--accent);"></i> Service queue <span class="queue-count" id="queue-count-ai">0</span></h3>
+          </div>
+          <div class="queue-list" id="queue-list-ai">
+            <div class="queue-empty">No services queued yet.</div>
+          </div>
+          <div class="queue-footer">
+            <button class="btn btn-accent" onclick="sendQueueToRO()"><i class="ti ti-arrow-right"></i>Send all to RO notepad</button>
+            <button class="btn btn-ghost btn-sm" onclick="clearQueue()"><i class="ti ti-trash"></i>Clear queue</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ RO NOTEPAD ══ -->
+    <div class="tab-page" id="tab-ro">
+      <div class="page-header">
+        <h1>RO Notepad</h1>
+        <div class="actions">
+          <span class="autosave-hint"><i class="ti ti-device-floppy"></i><span id="autosave-label">Auto-saved</span></span>
+          <button class="btn" onclick="clearRO()"><i class="ti ti-rotate-left"></i>New RO</button>
+          <button class="btn btn-accent" onclick="saveROToLog()"><i class="ti ti-plus"></i>Add to log</button>
+        </div>
+      </div>
+      <div class="page-body">
+        <div class="ro-wrap">
+          <div class="form-grid">
+            <div class="form-group"><label>RO number</label><input type="text" id="ro-num" placeholder="e.g. 105234" oninput="autosaveRO()"></div>
+            <div class="form-group"><label>Date</label><input type="date" id="ro-date" oninput="autosaveRO()"></div>
+            <div class="form-group"><label>Year / Make / Model</label><input type="text" id="ro-vehicle" placeholder="e.g. 2019 Ford F-150" oninput="autosaveRO()"></div>
+            <div class="form-group"><label>VIN</label><input type="text" id="ro-vin" placeholder="Full or last 8 digits" maxlength="17" oninput="autosaveRO()"></div>
+            <div class="form-group"><label>Service writer</label><input type="text" id="ro-sw" placeholder="Name" oninput="autosaveRO()"></div>
+            <div class="form-group"><label>Mileage in</label><input type="text" id="ro-miles" placeholder="e.g. 47,230" oninput="autosaveRO()"></div>
+            <div class="section-rule">Diagnosis &amp; Findings</div>
+            <div class="form-group full"><label>Customer concern</label><input type="text" id="ro-concern" placeholder="e.g. Check engine light on, rough idle" oninput="autosaveRO()"></div>
+            <div class="form-group full"><label>DTCs / Codes</label><input type="text" id="ro-codes" placeholder="e.g. P0300, P0171" oninput="autosaveRO()"></div>
+            <div class="form-group full">
+              <label>Tech findings / Cause <span style="font-size:11px;color:var(--text3);font-weight:400;">(populated from queue)</span></label>
+              <textarea id="ro-findings" placeholder="Cause stories from your service queue will appear here…" oninput="autosaveRO()" style="min-height:110px;"></textarea>
+            </div>
+            <div class="section-rule">Sign-out</div>
+            <div class="form-group full">
+              <label>Work performed / Correction <span style="font-size:11px;color:var(--text3);font-weight:400;">(populated from queue)</span></label>
+              <textarea id="ro-work" placeholder="Correction notes from your service queue will appear here…" oninput="autosaveRO()" style="min-height:130px;"></textarea>
+            </div>
+            <div class="form-group"><label>Hours flagged</label><input type="number" id="ro-hours" placeholder="0.0" step="0.1" min="0" oninput="autosaveRO()"></div>
+            <div class="form-group"><label>Status</label>
+              <select id="ro-status" onchange="autosaveRO()">
+                <option value="done">Completed</option>
+                <option value="wip">Waiting on Parts</option>
+                <option value="customer">Waiting on Customer Response</option>
+                <option value="review">Needs Review (hours don't match)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ WORK LOG ══ -->
+    <div class="tab-page" id="tab-log">
+      <div class="page-header">
+        <h1>Work Log</h1>
+        <div class="actions"><button class="btn" onclick="exportCSV()"><i class="ti ti-download"></i>Export CSV</button></div>
+      </div>
+      <div class="page-body">
+        <div class="log-toolbar">
+          <input type="text" id="log-search" placeholder="Search RO, vehicle, concern…" oninput="renderLog()">
+          <select id="log-filter" onchange="renderLog()">
+            <option value="">All statuses</option>
+            <option value="done">Completed</option>
+            <option value="wip">Waiting on Parts</option>
+            <option value="customer">Waiting on Customer</option>
+            <option value="review">Needs Review</option>
+          </select>
+          <button class="btn btn-danger btn-sm" id="delete-selected-btn" onclick="deleteSelected()" style="display:none;"><i class="ti ti-trash"></i>Delete selected (<span id="selected-count">0</span>)</button>
+          <div class="spacer"></div>
+          <span id="log-count-label" style="font-size:12px;color:var(--text3);"></span>
+        </div>
+        <div class="card" style="overflow:hidden;">
+          <div id="log-empty" class="empty-state" style="display:none;"><i class="ti ti-clipboard"></i><p>No jobs logged yet. Fill out an RO and hit "Add to log."</p></div>
+          <div id="log-table-wrap">
+            <table>
+              <thead><tr>
+                <th style="width:36px; padding-right:0;"><input type="checkbox" id="select-all-jobs" onchange="toggleSelectAll(this)" title="Select all" style="cursor:pointer; width:15px; height:15px; accent-color:var(--accent);"></th>
+                <th>Date</th><th>RO #</th><th>Vehicle</th><th>Concern</th><th>Codes</th><th>Hours</th><th>Status</th><th style="text-align:right;">Actions</th>
+              </tr></thead>
+              <tbody id="log-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ WEEKLY SUMMARY ══ -->
+    <div class="tab-page" id="tab-summary">
+      <div class="page-header">
+        <h1>Weekly Summary</h1>
+        <div class="actions"><button class="btn" onclick="exportWeekCSV()"><i class="ti ti-download"></i>Export week CSV</button></div>
+      </div>
+      <div class="page-body">
+        <div class="week-nav">
+          <button class="btn btn-sm" onclick="changeWeek(-1)"><i class="ti ti-chevron-left"></i></button>
+          <span id="week-label">This week</span>
+          <button class="btn btn-sm" onclick="changeWeek(1)"><i class="ti ti-chevron-right"></i></button>
+          <button class="btn btn-sm btn-ghost" onclick="currentWeekOffset=0;renderSummary()">Today</button>
+        </div>
+        <div class="summary-grid" id="summary-stats"></div>
+        <div class="week-table card" id="summary-table-wrap">
+          <table>
+            <thead><tr><th>Day</th><th>Jobs</th><th>Hours flagged</th><th>Vehicles</th></tr></thead>
+            <tbody id="summary-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ══ EDIT MODAL ══ -->
+<div class="modal-backdrop" id="edit-modal">
+  <div class="modal">
+    <div class="modal-header"><h2>Edit job</h2><button class="btn btn-ghost btn-sm" onclick="closeEditModal()"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>RO number</label><input type="text" id="edit-ro-num"></div>
+        <div class="form-group"><label>Date</label><input type="date" id="edit-ro-date"></div>
+        <div class="form-group"><label>Year / Make / Model</label><input type="text" id="edit-ro-vehicle"></div>
+        <div class="form-group"><label>VIN</label><input type="text" id="edit-ro-vin"></div>
+        <div class="form-group"><label>Service writer</label><input type="text" id="edit-ro-sw"></div>
+        <div class="form-group"><label>Mileage in</label><input type="text" id="edit-ro-miles"></div>
+        <div class="form-group full"><label>Customer concern</label><input type="text" id="edit-ro-concern"></div>
+        <div class="form-group full"><label>DTCs / Codes</label><input type="text" id="edit-ro-codes"></div>
+        <div class="form-group full"><label>Tech findings / Cause</label><textarea id="edit-ro-findings"></textarea></div>
+        <div class="form-group full"><label>Work performed / Correction</label><textarea id="edit-ro-work" style="min-height:100px;"></textarea></div>
+        <div class="form-group"><label>Hours flagged</label><input type="number" id="edit-ro-hours" step="0.1" min="0"></div>
+        <div class="form-group"><label>Status</label>
+          <select id="edit-ro-status">
+            <option value="done">Completed</option>
+            <option value="wip">Waiting on Parts</option>
+            <option value="customer">Waiting on Customer Response</option>
+            <option value="review">Needs Review (hours don't match)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeEditModal()">Cancel</button><button class="btn btn-accent" onclick="saveEdit()"><i class="ti ti-device-floppy"></i>Save changes</button></div>
+  </div>
+</div>
+
+<!-- ══ REQUEST TEMPLATES MODAL ══ -->
+<div class="modal-backdrop" id="request-modal">
+  <div class="modal">
+    <div class="modal-header"><h2>Request new templates</h2><button class="btn btn-ghost btn-sm" onclick="closeRequestModal()"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <p style="font-size:13.5px;color:var(--text2);margin-bottom:14px;">Describe the service procedures you want sign-out templates for. Include torque specs, fluid types, or other details you normally reference.</p>
+      <div class="form-group full"><label>What templates do you need?</label><textarea id="request-text" style="min-height:110px;" placeholder="e.g. Front brake pad and rotor replacement on a GM truck, power steering flush…"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeRequestModal()">Cancel</button><button class="btn btn-accent" onclick="submitTemplateRequest()"><i class="ti ti-sparkles"></i>Send to Claude</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><i class="ti ti-check"></i><span id="toast-msg"></span></div>
+
+<script src="app.js"></script>
+</body>
+</html>
