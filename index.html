@@ -352,34 +352,46 @@
     <!-- ══ AI STORY WRITER ══ -->
     <div class="tab-page" id="tab-ai">
       <div class="page-header">
-        <h1>AI Cause &amp; Correction Writer</h1>
-        <div class="actions">
-          <button class="btn btn-ghost btn-sm" onclick="openGeminiKeyModal()"><i class="ti ti-key"></i><span id="gemini-key-status">Set Gemini API key</span></button>
-        </div>
+        <h1>AI Prompt Builder</h1>
+        <div class="actions"></div>
       </div>
       <div class="page-body">
         <div class="card" style="max-width:780px;">
           <div class="card-body">
+            <p style="font-size:13px; color:var(--text2); margin-bottom:16px;">Fill in your notes, generate a ready-to-paste prompt, then take it to Gemini, ChatGPT, Claude, or whatever AI you have handy.</p>
             <div class="form-group full" style="margin-bottom:14px;">
-              <label>Throw your notes here — customer statement, what you found/diagnosed, and the recommendation or work performed</label>
-              <textarea id="ai-input" placeholder="e.g. Customer states AC and heat aren't blowing through the vents. Inspected and found the blower motor has failed internally — tested resistance at the motor, checked fuse and relay, both good, motor draws no current. Recommend replacing blower motor." style="min-height:160px;"></textarea>
+              <label>Customer states</label>
+              <textarea id="ai-input-customer" placeholder="e.g. Customer states AC and heat aren't blowing through the vents." style="min-height:70px;" oninput="generatePromptText()"></textarea>
             </div>
-            <div class="form-grid" style="margin-bottom:14px;">
-              <div class="form-group">
-                <label>This story is for a…</label>
-                <select id="ai-context">
-                  <option value="recommendation">Recommended service (not yet performed)</option>
-                  <option value="completed">Completed service (already performed)</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>&nbsp;</label>
-                <button class="btn btn-accent" onclick="generateAIStory()" style="width:100%; justify-content:center;" id="ai-generate-btn"><i class="ti ti-sparkles"></i>Write Cause &amp; Correction</button>
-              </div>
+            <div class="form-group full" style="margin-bottom:14px;">
+              <label>Diagnosis / what you found</label>
+              <textarea id="ai-input-diagnosis" placeholder="e.g. Inspected and found the blower motor has failed internally. Tested resistance at motor, checked fuse and relay — both good. Motor draws no current." style="min-height:90px;" oninput="generatePromptText()"></textarea>
             </div>
-            <div id="ai-error" style="display:none; background:var(--accent-light); color:var(--accent-text); padding:10px 14px; border-radius:var(--radius); font-size:13px; margin-bottom:14px;"></div>
+            <div class="form-group full" style="margin-bottom:14px;">
+              <label>Recommendation / work performed</label>
+              <textarea id="ai-input-recommendation" placeholder="e.g. Recommend replacing blower motor." style="min-height:70px;" oninput="generatePromptText()"></textarea>
+            </div>
+            <div class="form-group full" style="margin-bottom:14px;">
+              <label>This story is for a…</label>
+              <select id="ai-context" onchange="generatePromptText()">
+                <option value="recommendation">Recommended service (not yet performed)</option>
+                <option value="completed">Completed service (already performed)</option>
+              </select>
+            </div>
 
-            <div class="output-section" id="ai-output-section" style="display:none;">
+            <div class="output-section" id="ai-output-section">
+              <div class="output-body">
+                <div class="output-label">Prompt — copy this and paste it into your AI of choice</div>
+                <textarea class="output-area" id="ai-prompt-output" rows="10" readonly></textarea>
+              </div>
+              <div class="output-actions">
+                <button class="btn btn-accent" onclick="copyPromptText()"><i class="ti ti-copy"></i>Copy prompt</button>
+                <span class="copy-success" id="ai-copy-success"><i class="ti ti-check"></i>Copied!</span>
+              </div>
+            </div>
+
+            <div class="section-rule" style="margin-top:20px;">Paste the AI's response back here</div>
+            <div class="output-section" style="margin-top:10px;">
               <div class="output-tabs">
                 <div class="output-tab active" onclick="switchAIOutputTab('cause',this)">Cause</div>
                 <div class="output-tab" onclick="switchAIOutputTab('correction',this)">Correction</div>
@@ -387,17 +399,15 @@
               <div class="output-body">
                 <div id="ai-out-cause-wrap">
                   <div class="output-label">Cause <span id="ai-cause-count" style="font-weight:400; text-transform:none; color:var(--text3);"></span></div>
-                  <textarea class="output-area" id="ai-out-cause" rows="4" oninput="updateAICharCounts()"></textarea>
+                  <textarea class="output-area" id="ai-out-cause" rows="4" oninput="updateAICharCounts()" placeholder="Paste the cause story here…"></textarea>
                 </div>
                 <div id="ai-out-corr-wrap" style="display:none;">
                   <div class="output-label">Correction <span id="ai-corr-count" style="font-weight:400; text-transform:none; color:var(--text3);"></span></div>
-                  <textarea class="output-area" id="ai-out-correction" rows="6" oninput="updateAICharCounts()"></textarea>
+                  <textarea class="output-area" id="ai-out-correction" rows="6" oninput="updateAICharCounts()" placeholder="Paste the correction story here…"></textarea>
                 </div>
               </div>
               <div class="output-actions">
                 <button class="btn btn-green" onclick="addAIToQueue()"><i class="ti ti-plus"></i>Add to queue</button>
-                <button class="btn" onclick="copyAIActive()"><i class="ti ti-copy"></i>Copy</button>
-                <span class="copy-success" id="ai-copy-success"><i class="ti ti-check"></i>Copied!</span>
               </div>
             </div>
           </div>
@@ -1237,103 +1247,43 @@ function sendQueueToRO() {
   showTab('ro', document.querySelectorAll('.nav-btn')[1]);
 }
 
-// ─── AI Story Writer (Gemini) ──────────────────────────────────────────────────
+// ─── AI Prompt Builder ──────────────────────────────────────────────────────────
 const AI_CAUSE_LIMIT = 450;
 const AI_CORRECTION_LIMIT = 950;
 
-function getGeminiKey() { return localStorage.getItem('geminiApiKey') || ''; }
-
-function updateGeminiKeyStatus() {
-  const el = document.getElementById('gemini-key-status');
-  if (!el) return;
-  el.textContent = getGeminiKey() ? 'Gemini key set' : 'Set Gemini API key';
-}
-
-function openGeminiKeyModal() {
-  document.getElementById('gemini-key-input').value = getGeminiKey();
-  document.getElementById('gemini-key-modal').classList.add('open');
-}
-function closeGeminiKeyModal() { document.getElementById('gemini-key-modal').classList.remove('open'); }
-function saveGeminiKey() {
-  const key = document.getElementById('gemini-key-input').value.trim();
-  if (key) localStorage.setItem('geminiApiKey', key);
-  else localStorage.removeItem('geminiApiKey');
-  updateGeminiKeyStatus();
-  closeGeminiKeyModal();
-  showToast('Gemini key saved', 'success');
-}
-
-async function generateAIStory() {
-  const key = getGeminiKey();
-  if (!key) { openGeminiKeyModal(); return; }
-  const notes = document.getElementById('ai-input').value.trim();
-  const errEl = document.getElementById('ai-error');
-  errEl.style.display = 'none';
-  if (!notes) { showToast('Add your notes first', 'info'); return; }
-
+function generatePromptText() {
+  const customerStates = document.getElementById('ai-input-customer').value.trim();
+  const diagnosis = document.getElementById('ai-input-diagnosis').value.trim();
+  const recommendation = document.getElementById('ai-input-recommendation').value.trim();
   const context = document.getElementById('ai-context').value; // recommendation | completed
-  const tense = context === 'completed'
-    ? 'The correction describes work that has ALREADY been performed — write it in past tense as a completed repair.'
-    : 'The correction describes a RECOMMENDED service that has NOT been performed yet — write it as a recommendation for the customer to consider, not as completed work.';
 
-  const prompt = `You are helping an automotive technician write a "Cause" and "Correction" story for a repair order, based on rough notes. The notes typically include: what the customer stated, what the technician found/diagnosed (with tests performed), and the recommendation or work performed.
+  const statusLine = context === 'completed'
+    ? "This is completed work — it has already been performed. Write the correction in past tense as a finished repair."
+    : "This is recommended work — it hasn't been completed yet. Write the correction as a recommendation for the customer, not as completed work.";
 
-Rewrite the notes into a clean, professional technician story with two parts:
-1. CAUSE — the customer's complaint and the diagnostic finding (what's actually wrong and why). Maximum 450 characters.
-2. CORRECTION — what was done or what is recommended, including relevant tests/diagnostic steps performed. Maximum 950 characters.
+  const notesLines = [
+    customerStates ? `Customer states: ${customerStates}` : '',
+    diagnosis ? `Diagnosis / what I found: ${diagnosis}` : '',
+    recommendation ? `Recommendation / work performed: ${recommendation}` : '',
+  ].filter(Boolean).join('\n');
 
-${tense}
+  const prompt = `I need cause and correction stories for a repair order. The cause has a max of 450 characters, and the correction has a max of 950 characters. ${statusLine}
 
-Write in the technician's voice (first person/implied "I" — e.g. "Customer states...", "Inspected and found...", "Tested..."). Be specific and factual, no fluff, no marketing language. Do not exceed the character limits under any circumstances — tighten the wording rather than cutting off mid-sentence.
+Write in a technician's voice (e.g. "Customer states...", "Inspected and found...", "Tested..."). Be specific and factual, no fluff. Do not exceed the character limits — tighten the wording rather than cutting off mid-sentence.
 
-Respond ONLY with valid JSON in this exact format, no markdown fences, no preamble:
-{"cause": "...", "correction": "..."}
+Here is the info:
+${notesLines || '[fill in the boxes above]'}`;
 
-Technician's notes:
-"""
-${notes}
-"""`;
+  document.getElementById('ai-prompt-output').value = prompt;
+}
 
-  const btn = document.getElementById('ai-generate-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="ti ti-loader-2"></i>Writing…';
-
-  try {
-    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.4 }
-      })
-    });
-
-    if (!resp.ok) {
-      const errBody = await resp.text();
-      throw new Error(`Gemini API error (${resp.status}): ${errBody.slice(0,200)}`);
-    }
-
-    const data = await resp.json();
-    const raw = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
-    const clean = raw.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
-
-    let cause = (parsed.cause || '').trim();
-    let correction = (parsed.correction || '').trim();
-    if (cause.length > AI_CAUSE_LIMIT) cause = cause.slice(0, AI_CAUSE_LIMIT);
-    if (correction.length > AI_CORRECTION_LIMIT) correction = correction.slice(0, AI_CORRECTION_LIMIT);
-
-    document.getElementById('ai-out-cause').value = cause;
-    document.getElementById('ai-out-correction').value = correction;
-    document.getElementById('ai-output-section').style.display = '';
-    updateAICharCounts();
-  } catch (err) {
-    errEl.textContent = `Couldn't generate the story: ${err.message}. Check your Gemini API key and try again.`;
-    errEl.style.display = 'block';
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="ti ti-sparkles"></i>Write Cause &amp; Correction';
-  }
+function copyPromptText() {
+  const val = document.getElementById('ai-prompt-output').value;
+  navigator.clipboard.writeText(val).then(() => {
+    const el = document.getElementById('ai-copy-success');
+    el.style.display = 'flex';
+    setTimeout(() => el.style.display = 'none', 2000);
+  });
 }
 
 function updateAICharCounts() {
