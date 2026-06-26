@@ -395,15 +395,13 @@ const TEMPLATES = [
     id: 'state_inspection',
     name: 'State Inspection',
     cat: 'Inspection',
-    icon: 'ti-stamp',
+    icon: 'ti-license',
     fields: [
       { id: 'reason', label: 'Reason for inspection', type: 'toggle', options: ['License plate renewal','Vehicle sale'] },
       { id: 'types', label: 'Inspection(s) performed', type: 'multicheck', options: ['Safety','Emissions','ID/OD (Identification/Odometer)'] },
-      { id: 'safety_result', label: 'Safety result', type: 'toggle', options: ['Passed','Failed'] },
-      { id: 'safety_fail_reason', label: 'Safety fail reason', type: 'toggle', options: ['See recommendations','Failed due to safety concerns'] },
+      { id: 'safety_result', label: 'Safety result', type: 'toggle', options: ['Passed','Failed — see recommendations'] },
       { id: 'emissions_result', label: 'Emissions result', type: 'toggle', options: ['Passed','Failed'] },
       { id: 'emissions_fail_reason', label: 'Emissions fail reason', type: 'toggle', options: ['Monitors not set','Check engine light on','See recommendations'] },
-      { id: 'idod_result', label: 'ID/OD result', type: 'toggle', options: ['Passed','Failed'] },
     ],
     generate(o) {
       const reason = o.reason || '{reason}';
@@ -411,10 +409,10 @@ const TEMPLATES = [
 
       const lines = [];
       if (types.includes('Safety')) {
-        const res = o.safety_result || 'Passed';
-        let line = `Safety inspection — ${res.toLowerCase()}`;
-        if (res === 'Failed' && o.safety_fail_reason) line += ` (${o.safety_fail_reason.toLowerCase()})`;
-        lines.push(line + '.');
+        const failed = o.safety_result === 'Failed — see recommendations';
+        lines.push(failed
+          ? 'Safety inspection — failed. See recommendations.'
+          : 'Safety inspection — passed.');
       }
       if (types.includes('Emissions')) {
         const res = o.emissions_result || 'Passed';
@@ -423,10 +421,9 @@ const TEMPLATES = [
         lines.push(line + '.');
       }
       if (types.includes('ID/OD (Identification/Odometer)')) {
-        const res = o.idod_result || 'Passed';
-        lines.push(`ID/OD (identification number / odometer) verification — ${res.toLowerCase()}.`);
+        lines.push('Performed ID/OD (identification number / odometer) verification.');
       }
-      const correction = lines.length ? lines.join(' ') : 'Performed {inspection type} inspection — {passed/failed}.';
+      const correction = lines.length ? lines.join(' ') : 'Performed {inspection type} inspection.';
 
       return {
         cause: `Inspection requested for ${reason.toLowerCase()}.`,
