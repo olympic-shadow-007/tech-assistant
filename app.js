@@ -496,6 +496,86 @@ const TEMPLATES = [
     }
   },
   {
+    id: 'alignment',
+    name: 'Wheel Alignment',
+    cat: 'Tires',
+    icon: 'ti-arrow-autofit-width',
+    fields: [
+      { id: 'reason', label: 'Reason for alignment', type: 'toggle', options: ['Maintenance package','Pulling / drifting complaint','Uneven tire wear','New tires','Part replacement'] },
+      { id: 'package', label: 'Package interval (if maintenance)', type: 'input', placeholder: 'e.g. 30k', inputType: 'text' },
+      { id: 'part', label: 'Part replaced (if applicable)', type: 'input', placeholder: 'e.g. outer tie rod end', inputType: 'text' },
+      { id: 'type', label: 'Alignment type', type: 'toggle', options: ['Four-wheel','Front (thrust angle)'] },
+      { id: 'adjusted', label: 'Angles adjusted', type: 'multicheck', options: ['Toe','Camber','Caster'] },
+      { id: 'result', label: 'Result', type: 'toggle', options: ['Set to spec','Some angles not adjustable — see notes'] },
+    ],
+    generate(o) {
+      const type = o.type || 'Four-wheel';
+      const adjusted = (o.adjusted && o.adjusted.length) ? o.adjusted.join(', ').toLowerCase() : 'all adjustable angles';
+      const result = o.result === 'Some angles not adjustable — see notes'
+        ? 'Set adjustable angles to spec; some angles out of spec and not adjustable without additional parts — see recommendations.'
+        : 'Set all adjustable angles to manufacturer specification.';
+
+      let cause;
+      switch (o.reason) {
+        case 'Pulling / drifting complaint':
+          cause = 'Customer states vehicle pulls / drifts. Alignment checked and found out of spec.';
+          break;
+        case 'Uneven tire wear':
+          cause = 'Uneven tire wear noted. Alignment checked and found out of spec.';
+          break;
+        case 'New tires':
+          cause = 'Alignment performed with new tire installation to protect tire life.';
+          break;
+        case 'Part replacement':
+          cause = `Alignment required following replacement of ${o.part || '{part}'}.`;
+          break;
+        case 'Maintenance package':
+        default:
+          cause = o.package
+            ? `Alignment performed as part of ${o.package} maintenance package.`
+            : 'Alignment performed as part of scheduled maintenance package.';
+          break;
+      }
+
+      return {
+        cause,
+        correction: `Performed ${type.toLowerCase()} alignment. Measured and recorded initial angles. Adjusted ${adjusted}. ${result} Verified steering wheel centered and vehicle tracks straight.`
+      };
+    }
+  },
+  {
+    id: 'bulb',
+    name: 'Light Bulb Replacement',
+    cat: 'Electrical',
+    icon: 'ti-bulb',
+    fields: [
+      { id: 'location', label: 'Bulb location', type: 'toggle', options: ['Headlight (low beam)','Headlight (high beam)','Turn signal','Brake light','Tail light','Reverse light','License plate','Fog light','Interior'] },
+      { id: 'side', label: 'Side', type: 'toggle', options: ['LH','RH','Both'] },
+      { id: 'bulb_num', label: 'Bulb size / number', type: 'input', placeholder: 'e.g. 9005 / H11', inputType: 'text' },
+      { id: 'concern', label: 'How identified', type: 'toggle', options: ['Customer states bulb out','Found during inspection','Warning on dash'] },
+      { id: 'diag', label: 'Recommend diagnostics?', type: 'toggle', options: ['Bulb only — resolved','Recommend circuit diagnostics if recurs'] },
+    ],
+    generate(o) {
+      const loc = o.location || '{location}';
+      const side = o.side ? `${o.side} ` : '';
+      const num = o.bulb_num ? ` (${o.bulb_num})` : '';
+
+      let cause;
+      if (o.concern === 'Found during inspection') cause = `Found ${side}${loc.toLowerCase()} bulb inoperative during inspection.`;
+      else if (o.concern === 'Warning on dash') cause = `Dash warning for ${side}${loc.toLowerCase()} bulb out. Verified bulb inoperative.`;
+      else cause = `Customer states ${side}${loc.toLowerCase()} bulb out. Verified bulb inoperative.`;
+
+      const diagNote = o.diag === 'Recommend circuit diagnostics if recurs'
+        ? ' If failure recurs, recommend circuit / electrical diagnostics to check for underlying fault.'
+        : '';
+
+      return {
+        cause,
+        correction: `Removed and replaced ${side}${loc.toLowerCase()} bulb${num}. Verified proper operation after replacement.${diagNote}`
+      };
+    }
+  },
+  {
     id: 'state_inspection',
     name: 'State Inspection',
     cat: 'Inspection',
@@ -792,6 +872,18 @@ function copyPromptText() {
     el.style.display = 'flex';
     setTimeout(() => el.style.display = 'none', 2000);
   });
+}
+
+function clearAIBuilder() {
+  ['ai-input-customer','ai-input-diagnosis','ai-input-recommendation','ai-out-cause','ai-out-correction'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const ctx = document.getElementById('ai-context');
+  if (ctx) ctx.value = 'recommendation';
+  generatePromptText();
+  updateAICharCounts();
+  showToast('AI builder cleared', 'info');
 }
 
 function updateAICharCounts() {
