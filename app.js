@@ -246,16 +246,16 @@ const TEMPLATES = [
     icon: 'ti-wind',
     fields: [
       { id: 'mileage', label: 'Due-at interval (optional)', type: 'input', placeholder: 'e.g. 60k', inputType: 'text' },
-      { id: 'product', label: 'Product used', type: 'input', placeholder: 'e.g. Valvoline Throttle Body & Intake Cleaner', inputType: 'text', defaultValue: 'Valvoline Throttle Body & Intake Cleaner' },
-      { id: 'method', label: 'Method', type: 'toggle', options: ['Throttle body spray','Induction service (intake off)','Walnut blast (GDI)'] },
+      { id: 'method', label: 'Method', type: 'toggle', options: ['Pressurized intake mist','Walnut blast'] },
     ],
     generate(o) {
-      const prod = o.product || 'Valvoline Throttle Body & Intake Cleaner';
-      const method = o.method || 'Throttle body spray';
-      let corrDetail = '';
-      if (method === 'Walnut blast (GDI)') corrDetail = 'Removed intake manifold and performed walnut media blast on intake valves to remove carbon buildup. Cleaned media from intake ports. Reinstalled intake manifold and torqued to spec.';
-      else if (method === 'Induction service (intake off)') corrDetail = `Removed intake assembly. Applied ${prod} to throttle body bore, intake ports, and intake manifold. Cleaned throttle body butterfly and bore. Reinstalled intake and torqued to spec.`;
-      else corrDetail = `Applied ${prod} to throttle body bore and intake per label instructions. Cleaned throttle body butterfly and bore of carbon deposits.`;
+      const method = o.method || 'Pressurized intake mist';
+      let corrDetail;
+      if (method === 'Walnut blast') {
+        corrDetail = 'Removed intake/exhaust manifold for access. Walnut-blasted intake valves to remove carbon buildup. Cleaned media from ports and reinstalled manifold, torqued to spec.';
+      } else {
+        corrDetail = 'Added fuel system additive to fuel tank. Pressurized intake cleaning chemical and misted into intake through the intake tract to coat and break up carbon on the back of the intake valves. Verified normal operation after service.';
+      }
       return {
         cause: routineCause(o.mileage),
         correction: corrDetail
@@ -281,7 +281,7 @@ const TEMPLATES = [
         : routineCause(o.mileage);
       return {
         cause,
-        correction: `Flushed brake hydraulic system using pressure bleeder. Bled all four corners in sequence until fresh ${spec} fluid visible at each caliper bleeder. Filled master cylinder reservoir to max with ${brand} ${spec} brake fluid. Verified firm pedal. No leaks noted.`
+        correction: `Connected pressure bleeder and pushed fresh ${spec} fluid through the brake lines until fluid ran clear. Topped off master cylinder reservoir with ${brand} ${spec} brake fluid. Verified firm pedal. No leaks noted.`
       };
     }
   },
@@ -615,6 +615,112 @@ const TEMPLATES = [
       };
     }
   },
+  {
+    id: 'maint_package',
+    name: 'Maintenance Package',
+    cat: 'Maintenance',
+    icon: 'ti-package',
+    fields: [
+      { id: 'mileage', label: 'Package mileage', type: 'input', placeholder: 'e.g. 30k', inputType: 'text' },
+      { id: 'viscosity', label: 'Oil viscosity', type: 'toggle', options: ['0W-16','0W-20','5W-20','0W-30','5W-30','5W-40','0W-40'] },
+      { id: 'quarts', label: 'Oil quarts', type: 'input', placeholder: 'e.g. 5.7', inputType: 'text' },
+      { id: 'oil_type', label: 'Oil grade', type: 'toggle', options: ['Full Synthetic','Synthetic Blend','Conventional','High Mileage'] },
+      { id: 'torque', label: 'Lug nut torque (ft-lbs)', type: 'input', placeholder: 'e.g. 100', inputType: 'text' },
+      { id: 'psi', label: 'Tire pressure (PSI)', type: 'input', placeholder: 'e.g. 35', inputType: 'text' },
+      { id: 'trans', label: 'Include transmission flush', type: 'toggle', options: ['Yes'] },
+      { id: 'coolant', label: 'Include coolant flush', type: 'toggle', options: ['Yes'] },
+      { id: 'intake', label: 'Include intake clean', type: 'toggle', options: ['Yes'] },
+      { id: 'alignment', label: 'Include alignment', type: 'toggle', options: ['Yes'] },
+    ],
+    generate(o) {
+      const mi = (o.mileage || '').trim();
+      const vis = o.viscosity || '{viscosity}';
+      const qts = o.quarts || '{qts}';
+      const grade = o.oil_type || '{grade}';
+      const torque = o.torque || '{torque}';
+      const psi = o.psi || '{psi}';
+
+      const parts = [];
+      parts.push(`Changed oil and filter — ${qts} qts ${vis} ${grade}.`);
+      parts.push(`Rotated tires, torqued lugs to ${torque} ft-lbs, set pressures to ${psi} PSI.`);
+      parts.push('Added fuel system additive.');
+      parts.push('Replaced engine air filter and cabin air filter.');
+      if (o.trans === 'Yes') parts.push('Performed transmission fluid service.');
+      if (o.coolant === 'Yes') parts.push('Performed coolant flush and refill.');
+      if (o.intake === 'Yes') parts.push('Performed intake cleaning service.');
+      if (o.alignment === 'Yes') parts.push('Performed four-wheel alignment, set angles to spec.');
+
+      return {
+        cause: mi ? `${mi} maintenance.` : '{mileage} maintenance.',
+        correction: parts.join(' ')
+      };
+    }
+  },
+  {
+    id: 'brake_replace',
+    name: 'Brake Replacement',
+    cat: 'Completed Repairs',
+    icon: 'ti-disc',
+    fields: [
+      { id: 'concern', label: 'Reason', type: 'toggle', options: ['Worn — inspection','High-pitched squeal','Grinding noise','Vibration during braking'] },
+      { id: 'axle', label: 'Axle(s)', type: 'toggle', options: ['Front','Rear','Front & rear'] },
+      { id: 'scope', label: 'Scope', type: 'toggle', options: ['Pads only','Pads & rotors','Pads & resurfaced rotors'] },
+      { id: 'hardware', label: 'Hardware / shims replaced', type: 'toggle', options: ['Yes'] },
+      { id: 'torque', label: 'Lug nut torque (ft-lbs)', type: 'input', placeholder: 'e.g. 100', inputType: 'text' },
+    ],
+    generate(o) {
+      const axle = (o.axle || 'Front').toLowerCase();
+      const torque = o.torque || '{torque}';
+      const scope = o.scope || 'Pads & rotors';
+
+      const concernMap = {
+        'High-pitched squeal': 'Customer states high-pitched squeal when braking. Inspected and found brakes worn.',
+        'Grinding noise': 'Customer states grinding noise when braking. Inspected and found brakes worn beyond spec.',
+        'Vibration during braking': 'Customer states vibration when braking. Inspected and found rotors warped / out of spec.',
+        'Worn — inspection': 'Brakes found worn beyond spec on inspection. Replacement recommended.',
+      };
+      const cause = concernMap[o.concern] || concernMap['Worn — inspection'];
+
+      let scopeText;
+      if (scope === 'Pads only') scopeText = `Replaced ${axle} brake pads`;
+      else if (scope === 'Pads & resurfaced rotors') scopeText = `Replaced ${axle} brake pads and resurfaced rotors`;
+      else scopeText = `Replaced ${axle} brake pads and rotors`;
+
+      const hw = o.hardware === 'Yes' ? ' Installed new hardware / shims.' : '';
+
+      return {
+        cause,
+        correction: `${scopeText}.${hw} Lubricated caliper slides and contact points. Reinstalled wheels and torqued lug nuts to ${torque} ft-lbs. Verified firm pedal and proper brake operation on test.`
+      };
+    }
+  },
+  {
+    id: 'ac_replace',
+    name: 'AC Component Replacement',
+    cat: 'Completed Repairs',
+    icon: 'ti-snowflake',
+    fields: [
+      { id: 'concern', label: 'Customer concern', type: 'toggle', options: ['Not cooling','Warm air only','Intermittent cooling','Noise from AC'] },
+      { id: 'refrigerant', label: 'Refrigerant type', type: 'toggle', options: ['R-134a','R-1234yf'] },
+      { id: 'parts', label: 'Part(s) replaced', type: 'multicheck', options: ['Schrader valves','Condenser','Compressor','Expansion valve','Lines','Evaporator core'] },
+      { id: 'oil', label: 'Added system oil', type: 'toggle', options: ['Yes'] },
+      { id: 'recharge', label: 'Recharge amount (lbs/kg)', type: 'input', placeholder: 'e.g. 1.5', inputType: 'text' },
+    ],
+    generate(o) {
+      const ref = o.refrigerant || 'R-134a';
+      const unit = ref === 'R-1234yf' ? 'kg' : 'lbs';
+      const concern = (o.concern || 'not cooling').toLowerCase();
+      const parts = (o.parts && o.parts.length) ? o.parts : [];
+      const partsText = parts.length ? parts.join(', ').toLowerCase() : '{part(s)}';
+      const recharge = o.recharge ? `${o.recharge} ${unit}` : `{amount} ${unit}`;
+      const oilNote = o.oil === 'Yes' ? ' Added system oil per spec.' : '';
+
+      return {
+        cause: `Customer states AC ${concern}. Diagnosed system and found failed component(s): ${partsText}.`,
+        correction: `Recovered ${ref} refrigerant. Replaced ${partsText}.${oilNote} Evacuated system and recharged with ${recharge} of ${ref}. Verified proper cooling and pressures after repair.`
+      };
+    }
+  },
 ];
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -639,11 +745,33 @@ function showTab(name, btn) {
 }
 
 // ─── Template List ────────────────────────────────────────────────────────────
+// Display order for the template list: common at top, flushes/simple in middle,
+// diagnostics near the bottom, completed repairs at the very end.
+const TEMPLATE_ORDER = [
+  // Common
+  'oil_change','tire_rotation','maint_package','tire_replace','flat_repair','wipers','bulb','state_inspection','battery',
+  // Flushes & fluids / simple services
+  'coolant_flush','trans_flush','brake_flush','intake_clean','fuel_additive','engine_air','cabin_air','alignment',
+  // Diagnostic
+  'brake_inspect','ac_diag',
+  // Completed repairs (at the very end)
+  'brake_replace','ac_replace',
+];
+
+function orderedTemplates() {
+  const rank = id => {
+    const i = TEMPLATE_ORDER.indexOf(id);
+    return i === -1 ? 999 : i;
+  };
+  return TEMPLATES.slice().sort((a, b) => rank(a.id) - rank(b.id));
+}
+
 function renderTemplateList(filter) {
   const list = document.getElementById('tmpl-list');
+  const ordered = orderedTemplates();
   const filtered = filter
-    ? TEMPLATES.filter(t => t.name.toLowerCase().includes(filter) || t.cat.toLowerCase().includes(filter))
-    : TEMPLATES;
+    ? ordered.filter(t => t.name.toLowerCase().includes(filter) || t.cat.toLowerCase().includes(filter))
+    : ordered;
   list.innerHTML = filtered.map(t =>
     `<button class="tmpl-item ${activeTemplateId === t.id ? 'active' : ''}" onclick="selectTemplate('${t.id}')">
       <i class="ti ${t.icon}"></i>
