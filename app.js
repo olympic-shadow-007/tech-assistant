@@ -2,6 +2,26 @@
 // Each template has: name, cat, icon, fields (for the option builder), and
 // generate(opts) → { cause, correction }
 
+// Removes hyphens/dashes from generated output text, since the destination
+// program doesn't accept them. Em-dashes become a comma; word hyphens
+// (letter-hyphen-letter, e.g. "high-pitched") become a space. Spec codes that
+// mix letters and digits (0W-20, R-134a, DOT ratings) keep their character
+// intact by converting their hyphen to nothing so "0W-20" reads "0W20".
+function sanitizeOutput(text) {
+  if (!text) return text;
+  return text
+    // em-dash / en-dash used as a separator → comma
+    .replace(/\s*[—–]\s*/g, ', ')
+    // hyphen between two letters (word hyphen) → space
+    .replace(/([A-Za-z])-([A-Za-z])/g, '$1 $2')
+    // any remaining hyphen (e.g. in spec codes like 0W-20, R-134a) → removed
+    .replace(/-/g, '')
+    // tidy any doubled spaces or space-before-punctuation from the swaps
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([.,])/g, '$1')
+    .trim();
+}
+
 // Builds a routine-maintenance cause line. If a mileage is entered, it reads
 // "Routine maintenance — service due at [X] interval." Otherwise just "Routine maintenance."
 function routineCause(mileage) {
@@ -877,8 +897,8 @@ function generateOutput() {
   const tmpl = TEMPLATES.find(t => t.id === activeTemplateId);
   if (!tmpl) return;
   const result = tmpl.generate(optionValues);
-  document.getElementById('out-cause').value = result.cause;
-  document.getElementById('out-correction').value = result.correction;
+  document.getElementById('out-cause').value = sanitizeOutput(result.cause);
+  document.getElementById('out-correction').value = sanitizeOutput(result.correction);
 }
 
 function switchOutputTab(tab, el) {
