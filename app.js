@@ -10,16 +10,32 @@
 function sanitizeOutput(text) {
   if (!text) return text;
   return text
+    // Safety net: strip any stray {placeholder} a template may have missed.
+    .replace(/\s*\{[^}]*\}/g, '')
     // em-dash / en-dash used as a separator → comma
     .replace(/\s*[—–]\s*/g, ', ')
     // hyphen between two letters (word hyphen) → space
     .replace(/([A-Za-z])-([A-Za-z])/g, '$1 $2')
     // any remaining hyphen (e.g. in spec codes like 0W-20, R-134a) → removed
     .replace(/-/g, '')
-    // tidy any doubled spaces or space-before-punctuation from the swaps
+    // tidy spacing and orphaned punctuation
     .replace(/\s{2,}/g, ' ')
-    .replace(/\s+([.,])/g, '$1')
+    .replace(/\s+([.,:])/g, '$1')
+    .replace(/,\s*,/g, ',')
+    .replace(/\(\s*\)/g, '')
     .trim();
+}
+
+// Helpers for templates to drop blank fields cleanly instead of leaving a
+// placeholder. val('5','qts') → '5 qts'; val('', 'qts') → ''. join() glues the
+// non-empty pieces with single spaces.
+function val(v, unit) {
+  const x = (v == null ? '' : String(v)).trim();
+  if (!x) return '';
+  return unit ? `${x} ${unit}` : x;
+}
+function joinBits(...bits) {
+  return bits.map(b => (b == null ? '' : String(b)).trim()).filter(Boolean).join(' ');
 }
 
 // Builds a routine-maintenance cause line. If a mileage is entered, it reads
@@ -45,13 +61,14 @@ const TEMPLATES = [
       { id: 'olm_reset', label: 'OLM reset', type: 'toggle', options: ['Yes','N/A'] },
     ],
     generate(o) {
-      const vis = o.viscosity || '{viscosity}';
-      const qts = o.quarts || '{quarts}';
-      const type = o.oil_type || '{oil type}';
       const olm = o.olm_reset === 'N/A' ? '' : ' Reset oil life monitor.';
+      const oilDesc = joinBits(val(o.quarts, 'qts'), o.viscosity, o.oil_type);
+      const fillSentence = oilDesc
+        ? `Filled with ${oilDesc} engine oil.`
+        : 'Filled engine oil to spec.';
       return {
         cause: routineCause(o.mileage),
-        correction: `Drained engine oil and removed oil filter. Installed new OEM-spec oil filter. Reinstalled drain plug with new sealing washer and torqued to spec. Filled with ${qts} qts ${vis} ${type} engine oil.${olm} Verified no leaks at drain plug and filter. Checked final oil level — at full mark on dipstick.`
+        correction: `Drained engine oil and removed oil filter. Installed new OEM-spec oil filter. Reinstalled drain plug with new sealing washer and torqued to spec. ${fillSentence}${olm} Verified no leaks at drain plug and filter. Checked final oil level — at full mark on dipstick.`
       };
     }
   },
@@ -70,9 +87,7 @@ const TEMPLATES = [
       { id: 'mileage', label: 'Due-at interval (optional)', type: 'input', placeholder: 'e.g. 7k', inputType: 'text' },
     ],
     generate(o) {
-      const pat = o.pattern || '{rotation pattern}';
-      const torque = o.torque || '{torque}';
-      const psi = o.psi || '{psi}';
+      const pat = o.pattern ? o.pattern.toLowerCase() : '';
       const balanced = o.balanced === 'Balanced';
       const roadForce = o.road_force === 'Road force';
       const vib = o.vibration === 'Yes';
@@ -89,9 +104,19 @@ const TEMPLATES = [
       }
       const testDrive = vib ? ' Test drove vehicle — vibration resolved.' : '';
 
+      const rotateSentence = pat
+        ? `Rotated tires ${pat} per vehicle rotation pattern.`
+        : 'Rotated tires per vehicle rotation pattern.';
+      const torqueSentence = o.torque
+        ? ` Reinstalled wheels and torqued lug nuts to ${o.torque} ft-lbs.`
+        : ' Reinstalled wheels and torqued lug nuts to spec.';
+      const psiSentence = o.psi
+        ? ` Adjusted all four tire pressures to ${o.psi} PSI per door placard specification.`
+        : ' Adjusted all four tire pressures per door placard specification.';
+
       return {
         cause,
-        correction: `Rotated tires ${pat.toLowerCase()} per vehicle rotation pattern.${balanceNote} Reinstalled wheels and torqued lug nuts to ${torque} ft-lbs. Adjusted all four tire pressures to ${psi} PSI per door placard specification.${testDrive}`
+        correction: `${rotateSentence}${balanceNote}${torqueSentence}${psiSentence}${testDrive}`
       };
     }
   },
@@ -109,17 +134,23 @@ const TEMPLATES = [
       { id: 'psi', label: 'Set pressure (PSI)', type: 'input', placeholder: 'e.g. 35', inputType: 'text' },
     ],
     generate(o) {
-      const loc = o.location || '{location}';
-      const cause = o.cause || '{cause}';
-      const torque = o.torque || '{torque}';
-      const psi = o.psi || '{psi}';
+      const loc = o.location ? `${o.location} ` : '';
+      const flatCause = o.cause ? o.cause.toLowerCase() : '';
       const repaired = o.repairable !== 'Not repairable — replacement needed';
-      const balanceVerb = o.road_force === 'Road force' ? 'Road force balanced' : 'Balanced';
+      const balanceVerb = o.road_force === 'Road force' ? 'road force balanced' : 'balanced';
+      const torqueBit = o.torque ? ` to ${o.torque} ft-lbs` : ' to spec';
+      const psiBit = o.psi ? ` to ${o.psi} PSI` : '';
+
+      const removedPhrase = flatCause ? `Removed ${flatCause} from tread area. ` : '';
+      const foundPhrase = flatCause ? `Found ${flatCause} — ` : 'Found ';
+
       const correction = repaired
-        ? `Dismounted ${loc} tire. Removed ${cause.toLowerCase()} from tread area. Verified puncture within repairable zone. Installed plug-patch per industry standard. Remounted and ${balanceVerb.toLowerCase()} tire. Reinstalled wheel, torqued lug nuts to ${torque} ft-lbs. Inflated to ${psi} PSI per door placard.`
-        : `Dismounted ${loc} tire. Found ${cause.toLowerCase()} — outside repairable zone / sidewall damage. Tire condemned as non-repairable. See separate line for replacement.`;
+        ? `Dismounted ${loc}tire. ${removedPhrase}Verified puncture within repairable zone. Installed plug-patch per industry standard. Remounted and ${balanceVerb} tire. Reinstalled wheel, torqued lug nuts${torqueBit}. Inflated${psiBit} per door placard.`
+        : `Dismounted ${loc}tire. ${foundPhrase}outside repairable zone / sidewall damage. Tire condemned as non-repairable. See separate line for replacement.`;
+
+      const causeFound = flatCause ? ` — found ${flatCause}` : '';
       return {
-        cause: `Customer states ${loc} tire flat / low. Inspected tire — found ${cause.toLowerCase()}.`,
+        cause: `Customer states ${loc}tire flat / low. Inspected tire${causeFound}.`,
         correction
       };
     }
@@ -141,10 +172,6 @@ const TEMPLATES = [
     ],
     generate(o) {
       const positions = (o.positions && o.positions.length) ? o.positions : [];
-      const size = o.size || '{size}';
-      const brand = o.brand || '{brand/model}';
-      const torque = o.torque || '{torque}';
-      const psi = o.psi || '{psi}';
       const tpms = o.tpms || 'Reused existing';
 
       // Build a natural phrase for which tires
@@ -157,11 +184,15 @@ const TEMPLATES = [
       else if (hasRear && !set.has('LF') && !set.has('RF')) whichTires = 'both rear tires';
       else if (positions.length === 1) whichTires = `the ${positions[0]} tire`;
       else if (positions.length) whichTires = `the ${positions.join(', ')} tires`;
-      else whichTires = '{tires}';
+      else whichTires = 'tires';
 
       const count = positions.length;
       const balanceVerb = o.road_force === 'Road force' ? 'Road force balanced' : 'Balanced';
       const balanceObj = count === 4 ? 'all four wheels' : (count === 1 ? 'the wheel' : 'the replaced wheels');
+
+      // "new <size> <brand>" only if we have either
+      const newTireDesc = joinBits(o.size, o.brand);
+      const newTireBit = newTireDesc ? ` — new ${newTireDesc}` : '';
 
       let installNote = '';
       if (o.install_loc === 'Front') installNote = ' Installed new tires on front axle.';
@@ -173,9 +204,12 @@ const TEMPLATES = [
       else if (tpms === 'Service kits only') tpmsNote = ' Installed new TPMS service kits (valve core, cap, seal, nut); performed TPMS relearn per OEM procedure.';
       else tpmsNote = ' Verified TPMS sensors functional; performed TPMS relearn per OEM procedure.';
 
+      const torqueBit = o.torque ? ` to ${o.torque} ft-lbs` : ' to spec';
+      const psiBit = o.psi ? ` to ${o.psi} PSI` : '';
+
       return {
         cause: `Inspected tires — tread at or below wear indicators. Replacement recommended.`,
-        correction: `Mounted and ${balanceVerb.toLowerCase()} ${whichTires} — new ${size} ${brand}. ${balanceVerb} ${balanceObj}.${installNote}${tpmsNote} Reinstalled wheels, torqued lug nuts to ${torque} ft-lbs. Inflated to ${psi} PSI per door placard.`
+        correction: `Mounted and ${balanceVerb.toLowerCase()} ${whichTires}${newTireBit}. ${balanceVerb} ${balanceObj}.${installNote}${tpmsNote} Reinstalled wheels, torqued lug nuts${torqueBit}. Inflated${psiBit} per door placard.`
       };
     }
   },
@@ -210,8 +244,8 @@ const TEMPLATES = [
       { id: 'protector', label: 'Valvoline Water Pump Lubricant & Protector', type: 'toggle', options: ['Used'] },
     ],
     generate(o) {
-      const spec = o.coolant_spec || '{coolant spec}';
-      const qty = o.coolant_qty || '{qty}';
+      const spec = (o.coolant_spec || '').trim();
+      const qty = (o.coolant_qty || '').trim();
       const cause = o.condition === 'Contaminated / discolored'
         ? 'Coolant found discolored / contaminated — flush required.'
         : routineCause(o.mileage);
@@ -221,9 +255,14 @@ const TEMPLATES = [
       const protectorNote = o.protector === 'Used'
         ? ' Added Valvoline Water Pump Lubricant & Protector to coolant at refill.'
         : '';
+      // Build the refill phrase from only the parts that were entered.
+      const refillBits = [qty ? `${qty} qts` : '', spec].filter(Boolean).join(' ');
+      const refillSentence = refillBits
+        ? ` Refilled system with ${refillBits} coolant per manufacturer spec.`
+        : ' Refilled system with coolant per manufacturer spec.';
       return {
         cause,
-        correction: `Drained cooling system.${cleanerNote} Refilled system with ${qty} qts ${spec} coolant per manufacturer spec.${protectorNote} Bled air from cooling system per OEM procedure. Verified coolant level at cold fill line. No leaks noted.`
+        correction: `Drained cooling system.${cleanerNote}${refillSentence}${protectorNote} Bled air from cooling system per OEM procedure. Verified coolant level at cold fill line. No leaks noted.`
       };
     }
   },
@@ -243,16 +282,20 @@ const TEMPLATES = [
     generate(o) {
       const ttype = o.trans_type || 'Automatic';
       const isManual = ttype === 'Manual';
-      const spec = o.fluid_spec || 'Valvoline ATF';
-      const qty = o.fluid_qty || '{qty}';
+      const spec = (o.fluid_spec || '').trim();
+      const qty = (o.fluid_qty || '').trim();
       const panDrop = o.pan === 'Pan dropped & filter replaced';
       const panNote = (panDrop && !isManual) ? ' Removed and cleaned transmission pan. Installed new OEM-spec transmission filter and pan gasket. Reinstalled pan and torqued bolts to spec.' : '';
       let cause = routineCause(o.mileage);
       if (o.condition === 'Discolored / contaminated') cause = 'Transmission fluid found discolored / contaminated — service required.';
       else if (o.condition === 'Metal shavings / debris in fluid') cause = 'Metal shavings / debris found in transmission fluid on drain — possible internal wear. Service performed; advise further diagnosis if condition persists.';
+      // Build the refill phrase from only the parts that were entered.
+      const fluidKind = isManual ? 'manual transmission fluid' : 'transmission fluid';
+      const refillBits = [qty ? `${qty} qts` : '', spec].filter(Boolean).join(' ');
+      const refillPhrase = refillBits ? `${refillBits} ${fluidKind}` : fluidKind;
       const correction = isManual
-        ? `Drained manual transmission fluid. Reinstalled and torqued drain/fill plugs to spec. Refilled with ${qty} qts ${spec} manual transmission fluid per OEM spec. Verified fluid level at fill plug. No leaks noted.`
-        : `Drained ${ttype.toLowerCase()} transmission fluid.${panNote} Refilled with ${qty} qts ${spec} transmission fluid. Verified fluid level at operating temperature per OEM procedure. No leaks noted.`;
+        ? `Drained manual transmission fluid. Reinstalled and torqued drain/fill plugs to spec. Refilled with ${refillPhrase} per OEM spec. Verified fluid level at fill plug. No leaks noted.`
+        : `Drained ${ttype.toLowerCase()} transmission fluid.${panNote} Refilled with ${refillPhrase}. Verified fluid level at operating temperature per OEM procedure. No leaks noted.`;
       return {
         cause,
         correction
@@ -294,14 +337,18 @@ const TEMPLATES = [
       { id: 'fluid_source', label: 'Fluid brand', type: 'input', placeholder: 'e.g. Valvoline DOT 4', inputType: 'text', defaultValue: 'Valvoline DOT 4' },
     ],
     generate(o) {
-      const spec = o.fluid_spec || 'DOT 4';
-      const brand = o.fluid_source || 'Valvoline DOT 4';
+      const spec = (o.fluid_spec || '').trim();
+      const brand = (o.fluid_source || '').trim();
       const cause = o.condition === 'Discolored / contaminated'
         ? 'Brake fluid found discolored and contaminated — flush required.'
         : routineCause(o.mileage);
+      // First sentence names the spec; refill names the brand (which usually
+      // already includes the spec, so don't repeat it).
+      const freshFluid = spec ? `fresh ${spec} fluid` : 'fresh brake fluid';
+      const refillFluid = brand || (spec ? `${spec} brake fluid` : 'brake fluid');
       return {
         cause,
-        correction: `Connected pressure bleeder and pushed fresh ${spec} fluid through the brake lines until fluid ran clear. Topped off master cylinder reservoir with ${brand} ${spec} brake fluid. Verified firm pedal. No leaks noted.`
+        correction: `Connected pressure bleeder and pushed ${freshFluid} through the brake lines until fluid ran clear. Topped off master cylinder reservoir with ${refillFluid}. Verified firm pedal. No leaks noted.`
       };
     }
   },
@@ -431,13 +478,22 @@ const TEMPLATES = [
     ],
     generate(o) {
       const cond = o.condition || 'worn';
-      const d = o.driver_size || '{driver size}';
-      const p = o.pass_size || '{passenger size}';
+      const d = (o.driver_size || '').trim();
+      const p = (o.pass_size || '').trim();
       const rearReplaced = o.rear === 'Replaced rear wiper';
-      const rearNote = rearReplaced ? ` Replaced rear wiper blade with ${o.rear_size || '{rear size}'} blade.` : '';
+      const rearSize = (o.rear_size || '').trim();
+      const rearNote = rearReplaced
+        ? (rearSize ? ` Replaced rear wiper blade with ${rearSize} blade.` : ' Replaced rear wiper blade.')
+        : '';
+      // Front blade sentence adapts to whichever sizes are present.
+      let frontSentence;
+      if (d && p) frontSentence = `Installed new ${d} driver and ${p} passenger wiper blades per OEM spec.`;
+      else if (d) frontSentence = `Installed new ${d} driver side wiper blade per OEM spec.`;
+      else if (p) frontSentence = `Installed new ${p} passenger side wiper blade per OEM spec.`;
+      else frontSentence = 'Installed new front wiper blades per OEM spec.';
       return {
         cause: `Wiper blades found ${cond.toLowerCase()} — replacement recommended.`,
-        correction: `Removed worn wiper blades. Installed new ${d} driver and ${p} passenger wiper blades per OEM spec. Tested wiper operation on all speed settings — wipers clear cleanly.${rearNote}`
+        correction: `Removed worn wiper blades. ${frontSentence} Tested wiper operation on all speed settings — wipers clear cleanly.${rearNote}`
       };
     }
   },
@@ -456,8 +512,6 @@ const TEMPLATES = [
       { id: 'lines', label: 'Lines / hoses', type: 'toggle', options: ['No issues noted','Seepage noted — recommend replacement'] },
     ],
     generate(o) {
-      const fmm = o.front_mm || '{front mm}';
-      const rmm = o.rear_mm || '{rear mm}';
       const rotorF = o.rotor_front || 'Within spec';
       const rotorR = o.rotor_rear || 'Within spec';
       const fluid = o.fluid || 'Good';
@@ -470,9 +524,12 @@ const TEMPLATES = [
       };
       const cause = concernMap[o.concern] || 'Brake inspection performed per customer request / maintenance schedule.';
 
+      const frontPads = o.front_mm ? ` Front brake pads: ${o.front_mm}mm remaining.` : '';
+      const rearPads = o.rear_mm ? ` Rear brake pads: ${o.rear_mm}mm remaining.` : '';
+
       return {
         cause,
-        correction: `Performed full brake system inspection. Front brake pads: ${fmm}mm remaining. Rear brake pads: ${rmm}mm remaining. Front rotors: ${rotorF.toLowerCase()}. Rear rotors: ${rotorR.toLowerCase()}. Brake fluid condition: ${fluid.toLowerCase()}. Brake lines and flexible hoses: ${lines.toLowerCase()}. Parking brake functional and adjusted.`
+        correction: `Performed full brake system inspection.${frontPads}${rearPads} Front rotors: ${rotorF.toLowerCase()}. Rear rotors: ${rotorR.toLowerCase()}. Brake fluid condition: ${fluid.toLowerCase()}. Brake lines and flexible hoses: ${lines.toLowerCase()}. Parking brake functional and adjusted.`
       };
     }
   },
@@ -498,20 +555,37 @@ const TEMPLATES = [
     generate(o) {
       const ref = o.refrigerant || 'R-134a';
       const unit = ref === 'R-1234yf' ? 'kg' : 'lbs';
-      const sh = o.static_high || '{static high}';
-      const sl = o.static_low || '{static low}';
-      const rh = o.run_high || '{running high}';
-      const rl = o.run_low || '{running low}';
-      const comp = o.compressor || '{compressor operation}';
-      const leak = o.leaks || 'No obvious leaks noted';
-      const leakLoc = (o.leak_location && leak !== 'No obvious leaks noted') ? ` Location: ${o.leak_location}.` : '';
-      const recovered = o.recovered ? `${o.recovered} ${unit}` : '{recovered}';
-      const filled = o.filled ? `${o.filled} ${unit}` : '{filled}';
-      const ductTemp = o.duct_temp ? `${o.duct_temp}°F` : '{duct temp}';
       const concern = o.concern || 'not cooling';
+
+      // Pressure sentences: show only the sides that were entered.
+      const staticSide = joinBits(
+        o.static_high ? `high side: ${o.static_high} PSI` : '',
+        o.static_low ? `low side: ${o.static_low} PSI` : ''
+      ).replace(' low', ', low');
+      const staticSentence = staticSide ? ` Static pressures — ${staticSide}.` : '';
+
+      const runSide = joinBits(
+        o.run_high ? `high side: ${o.run_high} PSI` : '',
+        o.run_low ? `low side: ${o.run_low} PSI` : ''
+      ).replace(' low', ', low');
+      const runSentence = runSide
+        ? ` Started vehicle and enabled AC. Running pressures — ${runSide}.`
+        : ' Started vehicle and enabled AC.';
+
+      const compSentence = o.compressor ? ` Compressor operation: ${o.compressor.toLowerCase()}.` : '';
+      const leak = o.leaks || 'No obvious leaks noted';
+      const leakSentence = ` Leak check: ${leak.toLowerCase()}.`;
+      const leakLoc = (o.leak_location && leak !== 'No obvious leaks noted') ? ` Location: ${o.leak_location}.` : '';
+
+      const recoveredSentence = o.recovered ? ` Recovered ${o.recovered} ${unit} of ${ref} refrigerant.` : '';
+      const rechargeSentence = o.filled
+        ? ` Recharged system with ${o.filled} ${unit} of ${ref}.`
+        : '';
+      const ductSentence = o.duct_temp ? ` Verified duct temperature at ${o.duct_temp}°F after charge.` : '';
+
       return {
         cause: `Customer states AC ${concern.toLowerCase()}. Performed AC system diagnosis.`,
-        correction: `Connected ${ref} manifold gauge set. Static pressures — high side: ${sh} PSI, low side: ${sl} PSI. Started vehicle and enabled AC. Running pressures — high side: ${rh} PSI, low side: ${rl} PSI. Compressor operation: ${comp.toLowerCase()}. Leak check: ${leak.toLowerCase()}.${leakLoc} Recovered ${recovered} of ${ref} refrigerant. Recharged system with ${filled} ${ref}. Verified duct temperature at ${ductTemp} after charge.`
+        correction: `Connected ${ref} manifold gauge set.${staticSentence}${runSentence}${compSentence}${leakSentence}${leakLoc}${recoveredSentence}${rechargeSentence}${ductSentence}`.trim()
       };
     }
   },
@@ -547,7 +621,9 @@ const TEMPLATES = [
           cause = 'Alignment performed with new tire installation to protect tire life.';
           break;
         case 'Part replacement':
-          cause = `Alignment required following replacement of ${o.part || '{part}'}.`;
+          cause = o.part
+            ? `Alignment required following replacement of ${o.part}.`
+            : 'Alignment required following suspension / steering part replacement.';
           break;
         case 'Maintenance package':
         default:
@@ -576,14 +652,14 @@ const TEMPLATES = [
       { id: 'diag', label: 'Recommend diagnostics?', type: 'toggle', options: ['Bulb only — resolved','Recommend circuit diagnostics if recurs'] },
     ],
     generate(o) {
-      const loc = o.location || '{location}';
+      const loc = o.location ? `${o.location.toLowerCase()} ` : '';
       const side = o.side ? `${o.side} ` : '';
       const num = o.bulb_num ? ` (${o.bulb_num})` : '';
 
       let cause;
-      if (o.concern === 'Found during inspection') cause = `Found ${side}${loc.toLowerCase()} bulb inoperative during inspection.`;
-      else if (o.concern === 'Warning on dash') cause = `Dash warning for ${side}${loc.toLowerCase()} bulb out. Verified bulb inoperative.`;
-      else cause = `Customer states ${side}${loc.toLowerCase()} bulb out. Verified bulb inoperative.`;
+      if (o.concern === 'Found during inspection') cause = `Found ${side}${loc}bulb inoperative during inspection.`;
+      else if (o.concern === 'Warning on dash') cause = `Dash warning for ${side}${loc}bulb out. Verified bulb inoperative.`;
+      else cause = `Customer states ${side}${loc}bulb out. Verified bulb inoperative.`;
 
       const diagNote = o.diag === 'Recommend circuit diagnostics if recurs'
         ? ' If failure recurs, recommend circuit / electrical diagnostics to check for underlying fault.'
@@ -591,7 +667,7 @@ const TEMPLATES = [
 
       return {
         cause,
-        correction: `Removed and replaced ${side}${loc.toLowerCase()} bulb${num}. Verified proper operation after replacement.${diagNote}`
+        correction: `Removed and replaced ${side}${loc}bulb${num}. Verified proper operation after replacement.${diagNote}`
       };
     }
   },
@@ -608,7 +684,6 @@ const TEMPLATES = [
       { id: 'emissions_fail_reason', label: 'Emissions fail reason', type: 'toggle', options: ['Monitors not set','Check engine light on','See recommendations'] },
     ],
     generate(o) {
-      const reason = o.reason || '{reason}';
       const types = (o.types && o.types.length) ? o.types : [];
 
       const lines = [];
@@ -627,12 +702,12 @@ const TEMPLATES = [
       if (types.includes('ID/OD')) {
         lines.push('Performed ID/OD verification.');
       }
-      const correction = lines.length ? lines.join(' ') : 'Performed {inspection type} inspection.';
+      const correction = lines.length ? lines.join(' ') : 'Performed state inspection.';
 
-      return {
-        cause: `Inspection requested for ${reason.toLowerCase()}.`,
-        correction
-      };
+      const cause = o.reason
+        ? `Inspection requested for ${o.reason.toLowerCase()}.`
+        : 'State inspection requested.';
+      return { cause, correction };
     }
   },
   {
@@ -654,15 +729,16 @@ const TEMPLATES = [
     ],
     generate(o) {
       const mi = (o.mileage || '').trim();
-      const vis = o.viscosity || '{viscosity}';
-      const qts = o.quarts || '{qts}';
-      const grade = o.oil_type || '{grade}';
-      const torque = o.torque || '{torque}';
-      const psi = o.psi || '{psi}';
+      const oilDesc = joinBits(val(o.quarts, 'qts'), o.viscosity, o.oil_type);
 
       const parts = [];
-      parts.push(`Changed oil and filter — ${qts} qts ${vis} ${grade}.`);
-      parts.push(`Rotated tires, torqued lugs to ${torque} ft-lbs, set pressures to ${psi} PSI.`);
+      parts.push(oilDesc ? `Changed oil and filter — ${oilDesc}.` : 'Changed oil and filter.');
+      // Rotation sentence shows torque/PSI only when entered.
+      const rotBits = joinBits(
+        o.torque ? `torqued lugs to ${o.torque} ft-lbs` : 'torqued lugs to spec',
+        o.psi ? `set pressures to ${o.psi} PSI` : 'set pressures to placard spec'
+      ).replace(' set', ', set');
+      parts.push(`Rotated tires, ${rotBits}.`);
       parts.push('Added fuel system additive.');
       parts.push('Replaced engine air filter and cabin air filter.');
       if (o.trans === 'Yes') parts.push('Performed transmission fluid service.');
@@ -671,7 +747,7 @@ const TEMPLATES = [
       if (o.alignment === 'Yes') parts.push('Performed four-wheel alignment, set angles to spec.');
 
       return {
-        cause: mi ? `${mi} maintenance.` : '{mileage} maintenance.',
+        cause: mi ? `${mi} maintenance.` : 'Scheduled maintenance package.',
         correction: parts.join(' ')
       };
     }
@@ -690,7 +766,6 @@ const TEMPLATES = [
     ],
     generate(o) {
       const axle = (o.axle || 'Front').toLowerCase();
-      const torque = o.torque || '{torque}';
       const scope = o.scope || 'Pads & rotors';
 
       const concernMap = {
@@ -707,10 +782,11 @@ const TEMPLATES = [
       else scopeText = `Replaced ${axle} brake pads and rotors`;
 
       const hw = o.hardware === 'Yes' ? ' Installed new hardware / shims.' : '';
+      const torqueBit = o.torque ? ` to ${o.torque} ft-lbs` : ' to spec';
 
       return {
         cause,
-        correction: `${scopeText}.${hw} Lubricated caliper slides and contact points. Reinstalled wheels and torqued lug nuts to ${torque} ft-lbs. Verified firm pedal and proper brake operation on test.`
+        correction: `${scopeText}.${hw} Lubricated caliper slides and contact points. Reinstalled wheels and torqued lug nuts${torqueBit}. Verified firm pedal and proper brake operation on test.`
       };
     }
   },
@@ -731,13 +807,18 @@ const TEMPLATES = [
       const unit = ref === 'R-1234yf' ? 'kg' : 'lbs';
       const concern = (o.concern || 'not cooling').toLowerCase();
       const parts = (o.parts && o.parts.length) ? o.parts : [];
-      const partsText = parts.length ? parts.join(', ').toLowerCase() : '{part(s)}';
-      const recharge = o.recharge ? `${o.recharge} ${unit}` : `{amount} ${unit}`;
+      const partsText = parts.length ? parts.join(', ').toLowerCase() : '';
       const oilNote = o.oil === 'Yes' ? ' Added system oil per spec.' : '';
 
+      const foundBit = partsText ? `: ${partsText}` : '';
+      const replacedSentence = partsText ? ` Replaced ${partsText}.` : '';
+      const rechargeSentence = o.recharge
+        ? ` Evacuated system and recharged with ${o.recharge} ${unit} of ${ref}.`
+        : ` Evacuated system and recharged ${ref} to spec.`;
+
       return {
-        cause: `Customer states AC ${concern}. Diagnosed system and found failed component(s): ${partsText}.`,
-        correction: `Recovered ${ref} refrigerant. Replaced ${partsText}.${oilNote} Evacuated system and recharged with ${recharge} of ${ref}. Verified proper cooling and pressures after repair.`
+        cause: `Customer states AC ${concern}. Diagnosed system and found failed component(s)${foundBit}.`,
+        correction: `Recovered ${ref} refrigerant.${replacedSentence}${oilNote}${rechargeSentence} Verified proper cooling and pressures after repair.`
       };
     }
   },
