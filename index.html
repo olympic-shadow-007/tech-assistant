@@ -25,6 +25,8 @@
       <button class="nav-btn" onclick="showTab('ro',this)"><i class="ti ti-file-description"></i><span>RO Notepad</span></button>
       <button class="nav-btn" onclick="showTab('log',this)"><i class="ti ti-list-details"></i><span>Work Log</span><span class="nav-badge" id="log-nav-count">0</span></button>
       <button class="nav-btn" onclick="showTab('summary',this)"><i class="ti ti-chart-bar"></i><span>Summary</span></button>
+      <div class="nav-section-label" style="margin-top:6px;">Travel</div>
+      <button class="nav-btn" onclick="showTab('trip',this)"><i class="ti ti-car"></i><span>Trip Expenses</span></button>
     </nav>
     <div class="sidebar-footer">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
@@ -307,6 +309,123 @@
       </div>
     </div>
 
+    <!-- ══ TRIP EXPENSES ══ -->
+    <div class="tab-page" id="tab-trip">
+      <div class="page-header">
+        <h1>Trip Expenses</h1>
+        <div class="actions">
+          <button class="btn btn-danger" onclick="startNewTrip()"><i class="ti ti-rotate-left"></i>Start new trip</button>
+        </div>
+      </div>
+      <div class="page-body trip-body">
+
+        <!-- Trip setup -->
+        <div class="card trip-card">
+          <div class="card-header"><h2><i class="ti ti-settings" style="font-size:15px;color:var(--accent);"></i> Trip setup</h2></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group full"><label>Destination / trip name</label><input type="text" id="trip-dest" placeholder="e.g. Dallas training — Oct 2026" oninput="saveTripField('destination',this.value);renderTripSummary()"></div>
+              <div class="form-group"><label>Pay per mile ($)</label><input type="text" id="trip-permile" inputmode="decimal" placeholder="0.72" oninput="saveTripField('perMile',this.value);renderTripSummary()"></div>
+              <div class="form-group"><label>Drive-time pay ($/hour)</label><input type="text" id="trip-hourly" inputmode="decimal" placeholder="e.g. 18.50" oninput="saveTripField('hourly',this.value);renderTripSummary()"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mileage checkpoints -->
+        <div class="card trip-card">
+          <div class="card-header">
+            <h2><i class="ti ti-map-pin" style="font-size:15px;color:var(--accent);"></i> Mileage checkpoints</h2>
+            <span class="trip-hint">Four photo moments. Read the odometer &amp; clock off each photo.</span>
+          </div>
+          <div class="card-body">
+            <div class="checkpoint-grid">
+
+              <div class="checkpoint">
+                <div class="cp-head"><span class="cp-step">1</span><div><div class="cp-title">Leave home</div><div class="cp-sub">Gas station by your place — start of outbound drive</div></div></div>
+                <div class="cp-fields">
+                  <div class="form-group"><label>Odometer</label><input type="text" inputmode="numeric" id="cp-depart_home-odo" placeholder="e.g. 84,210" oninput="saveCheckpoint('depart_home','odo',this.value);renderTripSummary()"></div>
+                  <div class="form-group"><label>Date &amp; time</label><input type="datetime-local" id="cp-depart_home-time" onchange="saveCheckpoint('depart_home','time',this.value);renderTripSummary()"></div>
+                </div>
+                <div class="cp-photo"><label class="photo-btn"><i class="ti ti-camera"></i><span>Add photo</span><input type="file" accept="image/*" hidden onchange="onCheckpointPhoto('depart_home',this.files[0]);this.value=''"></label><div class="cp-thumb" id="thumb-depart_home"></div></div>
+              </div>
+
+              <div class="checkpoint">
+                <div class="cp-head"><span class="cp-step">2</span><div><div class="cp-title">Arrive at hotel</div><div class="cp-sub">End of outbound drive</div></div></div>
+                <div class="cp-fields">
+                  <div class="form-group"><label>Odometer</label><input type="text" inputmode="numeric" id="cp-arrive_hotel-odo" placeholder="e.g. 84,540" oninput="saveCheckpoint('arrive_hotel','odo',this.value);renderTripSummary()"></div>
+                  <div class="form-group"><label>Date &amp; time</label><input type="datetime-local" id="cp-arrive_hotel-time" onchange="saveCheckpoint('arrive_hotel','time',this.value);renderTripSummary()"></div>
+                </div>
+                <div class="cp-photo"><label class="photo-btn"><i class="ti ti-camera"></i><span>Add photo</span><input type="file" accept="image/*" hidden onchange="onCheckpointPhoto('arrive_hotel',this.files[0]);this.value=''"></label><div class="cp-thumb" id="thumb-arrive_hotel"></div></div>
+              </div>
+
+              <div class="checkpoint">
+                <div class="cp-head"><span class="cp-step">3</span><div><div class="cp-title">Leave hotel</div><div class="cp-sub">Final day — gas station near hotel — start of return drive</div></div></div>
+                <div class="cp-fields">
+                  <div class="form-group"><label>Odometer</label><input type="text" inputmode="numeric" id="cp-depart_hotel-odo" placeholder="e.g. 84,705" oninput="saveCheckpoint('depart_hotel','odo',this.value);renderTripSummary()"></div>
+                  <div class="form-group"><label>Date &amp; time</label><input type="datetime-local" id="cp-depart_hotel-time" onchange="saveCheckpoint('depart_hotel','time',this.value);renderTripSummary()"></div>
+                </div>
+                <div class="cp-photo"><label class="photo-btn"><i class="ti ti-camera"></i><span>Add photo</span><input type="file" accept="image/*" hidden onchange="onCheckpointPhoto('depart_hotel',this.files[0]);this.value=''"></label><div class="cp-thumb" id="thumb-depart_hotel"></div></div>
+              </div>
+
+              <div class="checkpoint">
+                <div class="cp-head"><span class="cp-step">4</span><div><div class="cp-title">Arrive home</div><div class="cp-sub">Gas station by your place — end of return drive</div></div></div>
+                <div class="cp-fields">
+                  <div class="form-group"><label>Odometer</label><input type="text" inputmode="numeric" id="cp-arrive_home-odo" placeholder="e.g. 85,035" oninput="saveCheckpoint('arrive_home','odo',this.value);renderTripSummary()"></div>
+                  <div class="form-group"><label>Date &amp; time</label><input type="datetime-local" id="cp-arrive_home-time" onchange="saveCheckpoint('arrive_home','time',this.value);renderTripSummary()"></div>
+                </div>
+                <div class="cp-photo"><label class="photo-btn"><i class="ti ti-camera"></i><span>Add photo</span><input type="file" accept="image/*" hidden onchange="onCheckpointPhoto('arrive_home',this.files[0]);this.value=''"></label><div class="cp-thumb" id="thumb-arrive_home"></div></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Receipts -->
+        <div class="card trip-card">
+          <div class="card-header">
+            <h2><i class="ti ti-receipt" style="font-size:15px;color:var(--accent);"></i> Receipts</h2>
+            <span class="trip-hint">Gas &amp; food are reimbursed. Add each one as you go.</span>
+          </div>
+          <div class="card-body">
+            <div class="receipt-add">
+              <div class="form-group"><label>Category</label>
+                <select id="rcpt-cat">
+                  <option value="Food">Food</option>
+                  <option value="Gas">Gas</option>
+                  <option value="Lodging">Lodging</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Amount ($)</label><input type="text" inputmode="decimal" id="rcpt-amt" placeholder="0.00"></div>
+              <div class="form-group"><label>Date</label><input type="date" id="rcpt-date"></div>
+              <div class="form-group rcpt-note"><label>Note (optional)</label><input type="text" id="rcpt-note" placeholder="e.g. dinner, fuel top-off"></div>
+              <label class="photo-btn rcpt-photo-btn"><i class="ti ti-camera"></i><span id="rcpt-photo-label">Photo</span><input type="file" accept="image/*" hidden id="rcpt-photo" onchange="onReceiptPhotoStaged(this.files[0])"></label>
+              <button class="btn btn-green" onclick="addReceipt()"><i class="ti ti-plus"></i>Add</button>
+            </div>
+            <div class="receipt-list" id="receipt-list"></div>
+            <div class="receipt-totals" id="receipt-totals"></div>
+          </div>
+        </div>
+
+        <!-- Summary (screenshot-worthy) -->
+        <div class="card trip-summary-card" id="trip-summary"></div>
+
+        <!-- Download -->
+        <div class="card trip-card">
+          <div class="card-header"><h2><i class="ti ti-download" style="font-size:15px;color:var(--accent);"></i> Download for your expense email</h2></div>
+          <div class="card-body">
+            <div class="download-row">
+              <button class="btn btn-accent" onclick="downloadTripZip()"><i class="ti ti-file-zip"></i>Download everything (ZIP)</button>
+              <button class="btn" onclick="downloadTripFilesIndividually()"><i class="ti ti-files"></i>Download files individually (backup)</button>
+              <button class="btn btn-ghost" onclick="downloadTripSummaryTxt()"><i class="ti ti-file-text"></i>Summary only (.txt)</button>
+            </div>
+            <p class="download-note"><i class="ti ti-info-circle"></i> Photos and data are saved in this browser on this device, so download from the same phone or computer you entered them on. If the ZIP ever fails, the individual-files button is your backup.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -354,7 +473,9 @@
 </div>
 
 <div class="toast" id="toast"><i class="ti ti-check"></i><span id="toast-msg"></span></div>
+<div class="photo-lightbox" id="photo-lightbox" onclick="closeLightbox()"><img id="lightbox-img" alt="Receipt / mileage photo"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
