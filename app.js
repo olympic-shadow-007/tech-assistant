@@ -843,6 +843,7 @@ function showTab(name, btn) {
   if (name === 'log') renderLog();
   if (name === 'summary') renderSummary();
   if (name === 'ai') { generatePromptText(); renderQueue(); }
+  if (name === 'trip') renderTrip();
 }
 
 // ─── Template List ────────────────────────────────────────────────────────────
@@ -1512,6 +1513,456 @@ function toggleTheme() {
 
 function loadTheme() {
   applyTheme(localStorage.getItem('techTheme') === 'dark' ? 'dark' : 'light');
+}
+
+// ─── Trip Expenses ────────────────────────────────────────────────────────────
+const TRIP_LS = 'tripData';
+const CP_KEYS = ['depart_home','arrive_hotel','depart_hotel','arrive_home'];
+const CP_META = {
+  depart_home:  { n: 1, label: 'Leave home',      file: '1-leave-home' },
+  arrive_hotel: { n: 2, label: 'Arrive at hotel', file: '2-arrive-hotel' },
+  depart_hotel: { n: 3, label: 'Leave hotel',     file: '3-leave-hotel' },
+  arrive_home:  { n: 4, label: 'Arrive home',     file: '4-arrive-home' },
+};
+
+function defaultTrip() {
+  return {
+    destination: '', perMile: '0.72', hourly: '',
+    checkpoints: {
+      depart_home:  { odo: '', time: '', photo: false },
+      arrive_hotel: { odo: '', time: '', photo: false },
+      depart_hotel: { odo: '', time: '', photo: false },
+      arrive_home:  { odo: '', time: '', photo: false },
+    },
+    receipts: [],
+  };
+}
+let trip = loadTrip();
+let stagedReceiptPhoto = null;    // File picked but not yet added
+let tripURLs = [];                // object URLs to revoke on re-render
+
+function loadTrip() {
+  try { const r = JSON.parse(localStorage.getItem(TRIP_LS)); if (r && r.checkpoints) return Object.assign(defaultTrip(), r); } catch (e) {}
+  return defaultTrip();
+}
+function saveTrip() { try { localStorage.setItem(TRIP_LS, JSON.stringify(trip)); } catch (e) {} }
+function saveTripField(field, val) { trip[field] = val; saveTrip(); }
+function saveCheckpoint(key, field, val) { trip.checkpoints[key][field] = val; saveTrip(); }
+
+// ── IndexedDB photo store (photos are too big for localStorage) ──
+const TRIP_DB = 'tripDB', TRIP_STORE = 'photos';
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    let req;
+    try { req = indexedDB.open(TRIP_DB, 1); } catch (e) { return reject(e); }
+    req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(TRIP_STORE)) req.result.createObjectStore(TRIP_STORE); };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbPut(key, blob) {
+  const db = await idbOpen();
+  return new Promise((res, rej) => { const tx = db.transaction(TRIP_STORE, 'readwrite'); tx.objectStore(TRIP_STORE).put(blob, key); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); });
+}
+async function idbGet(key) {
+  const db = await idbOpen();
+  return new Promise((res, rej) => { const tx = db.transaction(TRIP_STORE, 'readonly'); const r = tx.objectStore(TRIP_STORE).get(key); r.onsuccess = () => res(r.result || null); r.onerror = () => rej(r.error); });
+}
+async function idbDel(key) {
+  const db = await idbOpen();
+  return new Promise((res, rej) => { const tx = db.transaction(TRIP_STORE, 'readwrite'); tx.objectStore(TRIP_STORE).delete(key); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); });
+}
+async function idbClear() {
+  const db = await idbOpen();
+  return new Promise((res, rej) => { const tx = db.transaction(TRIP_STORE, 'readwrite'); tx.objectStore(TRIP_STORE).clear(); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); });
+}
+
+// ── Shrink a photo so it stays email-friendly; keep original if it won't load ──
+function downscaleImage(file, maxEdge = 1600, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('load failed')); };
+    img.src = url;
+  });
+}
+async function storePhoto(dbKey, file) {
+  let blob;
+  try { blob = await downscaleImage(file); } catch (e) { blob = file; } // fall back to original (e.g. HEIC)
+  await idbPut(dbKey, blob);
+}
+function extForBlob(blob) {
+  const t = (blob && blob.type) || '';
+  if (t.includes('png')) return 'png';
+  if (t.includes('webp')) return 'webp';
+  if (t.includes('heic')) return 'heic';
+  return 'jpg';
+}
+
+// ── Photo handlers ──
+async function onCheckpointPhoto(key, file) {
+  if (!file) return;
+  try {
+    await storePhoto('cp_' + key, file);
+    trip.checkpoints[key].photo = true; saveTrip();
+    renderTrip();
+    showToast('Photo added', 'success');
+  } catch (e) { showToast('Could not save photo on this device', 'info'); }
+}
+async function removeCheckpointPhoto(key) {
+  try { await idbDel('cp_' + key); } catch (e) {}
+  trip.checkpoints[key].photo = false; saveTrip();
+  renderTrip();
+}
+function onReceiptPhotoStaged(file) {
+  stagedReceiptPhoto = file || null;
+  const btn = document.querySelector('.rcpt-photo-btn');
+  const lbl = document.getElementById('rcpt-photo-label');
+  if (btn) btn.classList.toggle('staged', !!file);
+  if (lbl) lbl.textContent = file ? 'Photo ✓' : 'Photo';
+}
+async function addReceipt() {
+  const cat = document.getElementById('rcpt-cat').value;
+  const amt = document.getElementById('rcpt-amt').value.trim();
+  const date = document.getElementById('rcpt-date').value || new Date().toISOString().split('T')[0];
+  const note = document.getElementById('rcpt-note').value.trim();
+  if (!amt && !stagedReceiptPhoto) { showToast('Add an amount or a photo first', 'info'); return; }
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  let hasPhoto = false;
+  if (stagedReceiptPhoto) {
+    try { await storePhoto('rcpt_' + id, stagedReceiptPhoto); hasPhoto = true; } catch (e) { showToast('Photo could not be saved, receipt added without it', 'info'); }
+  }
+  trip.receipts.push({ id, category: cat, amount: amt, date, note, photo: hasPhoto });
+  saveTrip();
+  // reset entry row
+  document.getElementById('rcpt-amt').value = '';
+  document.getElementById('rcpt-note').value = '';
+  onReceiptPhotoStaged(null);
+  renderTrip();
+  showToast('Receipt added', 'success');
+}
+async function deleteReceipt(id) {
+  const r = trip.receipts.find(x => x.id === id);
+  if (r && r.photo) { try { await idbDel('rcpt_' + id); } catch (e) {} }
+  trip.receipts = trip.receipts.filter(x => x.id !== id);
+  saveTrip();
+  renderTrip();
+}
+
+// ── Number / time / format helpers ──
+function numOf(v) { if (v == null) return null; const n = parseFloat(String(v).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? null : n; }
+function hoursBetween(a, b) { if (!a || !b) return null; const d1 = new Date(a), d2 = new Date(b); if (isNaN(d1) || isNaN(d2)) return null; return (d2 - d1) / 3600000; }
+function money(n) { return (n == null) ? '—' : n.toLocaleString('en-US', { style: 'currency', currency: 'USD' }); }
+function milesFmt(n) { return (n == null) ? '—' : n.toLocaleString('en-US') + ' mi'; }
+function hoursFmt(h) { if (h == null) return '—'; const neg = h < 0; const mins = Math.round(Math.abs(h) * 60); return (neg ? '-' : '') + Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm'; }
+
+// ── The math ──
+function computeTrip() {
+  const cp = trip.checkpoints;
+  const dh = numOf(cp.depart_home.odo), ah = numOf(cp.arrive_hotel.odo), dhotel = numOf(cp.depart_hotel.odo), ahome = numOf(cp.arrive_home.odo);
+  const perMile = numOf(trip.perMile), hourly = numOf(trip.hourly);
+
+  const outMiles  = (ah != null && dh != null) ? ah - dh : null;
+  const weekMiles = (dhotel != null && ah != null) ? dhotel - ah : null;
+  const retMiles  = (ahome != null && dhotel != null) ? ahome - dhotel : null;
+  const totalMiles = (ahome != null && dh != null) ? ahome - dh : null;
+
+  const outHrs = hoursBetween(cp.depart_home.time, cp.arrive_hotel.time);
+  const retHrs = hoursBetween(cp.depart_hotel.time, cp.arrive_home.time);
+  const paidHrs = (outHrs || 0) + (retHrs || 0);
+
+  const mileagePay = (totalMiles != null && perMile != null) ? totalMiles * perMile : null;
+  const drivePay = (hourly != null) ? paidHrs * hourly : null;
+
+  const rcptByCat = { Food: 0, Gas: 0, Lodging: 0, Other: 0 };
+  let rcptTotal = 0;
+  trip.receipts.forEach(r => { const a = numOf(r.amount) || 0; rcptByCat[r.category] = (rcptByCat[r.category] || 0) + a; rcptTotal += a; });
+
+  const earnings = (mileagePay || 0) + (drivePay || 0);
+  const grand = earnings + rcptTotal;
+
+  const missing = [];
+  if ([dh, ah, dhotel, ahome].some(x => x == null)) missing.push('all four odometer readings');
+  if (!cp.depart_home.time || !cp.arrive_hotel.time) missing.push('outbound drive times');
+  if (!cp.depart_hotel.time || !cp.arrive_home.time) missing.push('return drive times');
+  if (perMile == null) missing.push('pay-per-mile rate');
+  if (hourly == null) missing.push('hourly drive rate');
+
+  return { dh, ah, dhotel, ahome, perMile, hourly, outMiles, weekMiles, retMiles, totalMiles, outHrs, retHrs, paidHrs, mileagePay, drivePay, rcptByCat, rcptTotal, earnings, grand, missing };
+}
+
+// ── Rendering ──
+function clearTripURLs() { tripURLs.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) {} }); tripURLs = []; }
+
+function renderTrip() {
+  clearTripURLs();
+  // Populate top fields
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+  setVal('trip-dest', trip.destination);
+  setVal('trip-permile', trip.perMile);
+  setVal('trip-hourly', trip.hourly);
+  CP_KEYS.forEach(k => { setVal('cp-' + k + '-odo', trip.checkpoints[k].odo); setVal('cp-' + k + '-time', trip.checkpoints[k].time); });
+  const rd = document.getElementById('rcpt-date'); if (rd && !rd.value) rd.value = new Date().toISOString().split('T')[0];
+
+  // Checkpoint thumbnails
+  CP_KEYS.forEach(k => {
+    const el = document.getElementById('thumb-' + k);
+    if (!el) return;
+    if (trip.checkpoints[k].photo) {
+      el.classList.add('has-img');
+      el.innerHTML = `<img data-dbkey="cp_${k}" alt="${CP_META[k].label} photo" onclick="openLightbox('cp_${k}')"><button class="thumb-remove" onclick="removeCheckpointPhoto('${k}')"><i class="ti ti-x"></i>Remove</button>`;
+    } else { el.classList.remove('has-img'); el.innerHTML = ''; }
+  });
+
+  renderReceipts();
+  renderTripSummary();
+  hydrateThumbs(document.getElementById('tab-trip'));
+}
+
+function renderReceipts() {
+  const list = document.getElementById('receipt-list');
+  if (!list) return;
+  if (!trip.receipts.length) { list.innerHTML = '<div class="receipt-empty">No receipts yet — add your gas and food as you go.</div>'; return; }
+  // group by date, newest day first
+  const byDate = {};
+  trip.receipts.forEach(r => { (byDate[r.date] = byDate[r.date] || []).push(r); });
+  const dates = Object.keys(byDate).sort().reverse();
+  const catClass = { Food: 'cat-food', Gas: 'cat-gas', Lodging: 'cat-lodging', Other: 'cat-other' };
+  list.innerHTML = dates.map(date => {
+    const rows = byDate[date];
+    const dayTotal = rows.reduce((s, r) => s + (numOf(r.amount) || 0), 0);
+    const niceDate = new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    return `<div class="receipt-day">
+      <div class="receipt-day-head"><span class="rd-date">${niceDate}</span><span class="rd-total">${money(dayTotal)}</span></div>
+      ${rows.map(r => `<div class="receipt-row">
+        <span class="rcpt-cat-pill ${catClass[r.category] || 'cat-other'}">${r.category}</span>
+        <span class="rcpt-amt">${money(numOf(r.amount) || 0)}</span>
+        <span class="rcpt-note-txt">${r.note ? escapeHtml(r.note) : ''}</span>
+        ${r.photo ? `<img class="rcpt-thumb-img" data-dbkey="rcpt_${r.id}" alt="receipt" onclick="openLightbox('rcpt_${r.id}')">` : ''}
+        <button class="rcpt-del" onclick="deleteReceipt('${r.id}')" title="Delete"><i class="ti ti-trash"></i></button>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+function renderTripSummary() {
+  const c = computeTrip();
+
+  // Receipt totals strip
+  const rt = document.getElementById('receipt-totals');
+  if (rt) {
+    const bits = [];
+    ['Food', 'Gas', 'Lodging', 'Other'].forEach(cat => { if (c.rcptByCat[cat]) bits.push(`<span class="rt-item">${cat}: <b>${money(c.rcptByCat[cat])}</b></span>`); });
+    rt.innerHTML = trip.receipts.length ? bits.join('') + `<span class="rt-grand">Receipts total: <b>${money(c.rcptTotal)}</b></span>` : '';
+  }
+
+  const sum = document.getElementById('trip-summary');
+  if (!sum) return;
+  const dateRange = (() => {
+    const a = trip.checkpoints.depart_home.time, b = trip.checkpoints.arrive_home.time;
+    const f = t => t ? new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null;
+    const fa = f(a), fb = f(b);
+    if (fa && fb) return `${fa} – ${fb}`;
+    return fa || fb || '';
+  })();
+
+  const missingNote = c.missing.length
+    ? `<div class="ts-missing"><i class="ti ti-alert-triangle"></i> Still need: ${c.missing.join(', ')}. The total below fills in as you add them.</div>` : '';
+
+  sum.innerHTML = `
+    <div class="ts-head">
+      <div class="ts-dest">${trip.destination ? escapeHtml(trip.destination) : 'Trip summary'}</div>
+      <div class="ts-dates">${dateRange}</div>
+    </div>
+
+    <div class="ts-section-label">Mileage</div>
+    <table class="ts-table">
+      <thead><tr><th>Leg</th><th class="num">Miles</th><th class="num">Drive time</th></tr></thead>
+      <tbody>
+        <tr><td>Outbound (home → hotel)</td><td class="num">${milesFmt(c.outMiles)}</td><td class="num">${hoursFmt(c.outHrs)}</td></tr>
+        <tr><td>At destination (local)</td><td class="num">${milesFmt(c.weekMiles)}</td><td class="num">not paid</td></tr>
+        <tr><td>Return (hotel → home)</td><td class="num">${milesFmt(c.retMiles)}</td><td class="num">${hoursFmt(c.retHrs)}</td></tr>
+        <tr class="ts-sub"><td>Total</td><td class="num">${milesFmt(c.totalMiles)}</td><td class="num">${hoursFmt(c.paidHrs || null)} paid</td></tr>
+      </tbody>
+    </table>
+
+    <div class="ts-section-label">Pay</div>
+    <div class="ts-pay">
+      <div class="ts-paytile"><div class="l">Mileage pay</div><div class="v">${money(c.mileagePay)}</div><div class="s">${c.totalMiles != null ? milesFmt(c.totalMiles) : '—'} × ${c.perMile != null ? money(c.perMile) : '$—'}/mi</div></div>
+      <div class="ts-paytile"><div class="l">Drive-time pay</div><div class="v">${money(c.drivePay)}</div><div class="s">${hoursFmt(c.paidHrs || null)} × ${c.hourly != null ? money(c.hourly) : '$—'}/hr</div></div>
+    </div>
+
+    <div class="ts-section-label">Reimbursements</div>
+    <table class="ts-table">
+      <tbody>
+        ${['Food', 'Gas', 'Lodging', 'Other'].filter(cat => c.rcptByCat[cat]).map(cat => `<tr><td>${cat}</td><td class="num">${money(c.rcptByCat[cat])}</td></tr>`).join('') || '<tr><td>No receipts yet</td><td class="num">—</td></tr>'}
+        <tr class="ts-sub"><td>Receipts total</td><td class="num">${money(c.rcptTotal)}</td></tr>
+      </tbody>
+    </table>
+
+    <div class="ts-grand"><span class="l">Total expected from employer</span><span class="v">${money(c.grand)}</span></div>
+    ${missingNote}
+  `;
+}
+
+// Load any <img data-dbkey> that doesn't have a src yet
+function hydrateThumbs(root) {
+  if (!root) return;
+  root.querySelectorAll('img[data-dbkey]').forEach(async img => {
+    if (img.getAttribute('src')) return;
+    try {
+      const blob = await idbGet(img.getAttribute('data-dbkey'));
+      if (blob) { const u = URL.createObjectURL(blob); tripURLs.push(u); img.src = u; }
+    } catch (e) {}
+  });
+}
+
+// ── Lightbox ──
+let lightboxURL = null;
+async function openLightbox(dbKey) {
+  try {
+    const blob = await idbGet(dbKey);
+    if (!blob) return;
+    if (lightboxURL) URL.revokeObjectURL(lightboxURL);
+    lightboxURL = URL.createObjectURL(blob);
+    document.getElementById('lightbox-img').src = lightboxURL;
+    document.getElementById('photo-lightbox').classList.add('open');
+  } catch (e) {}
+}
+function closeLightbox() {
+  document.getElementById('photo-lightbox').classList.remove('open');
+  if (lightboxURL) { URL.revokeObjectURL(lightboxURL); lightboxURL = null; }
+  document.getElementById('lightbox-img').src = '';
+}
+
+// ── Summary text (for the .txt and the ZIP) ──
+function buildTripSummaryText() {
+  const c = computeTrip();
+  const L = [];
+  L.push('TRIP EXPENSE SUMMARY');
+  if (trip.destination) L.push(trip.destination);
+  L.push('='.repeat(40));
+  L.push('');
+  L.push('MILEAGE CHECKPOINTS');
+  CP_KEYS.forEach(k => {
+    const cp = trip.checkpoints[k];
+    const t = cp.time ? new Date(cp.time).toLocaleString('en-US') : '—';
+    L.push(`  ${CP_META[k].n}. ${CP_META[k].label}: odometer ${cp.odo || '—'}, ${t}`);
+  });
+  L.push('');
+  L.push('MILEAGE');
+  L.push(`  Outbound (home to hotel): ${milesFmt(c.outMiles)}  (${hoursFmt(c.outHrs)})`);
+  L.push(`  At destination (local):   ${milesFmt(c.weekMiles)}  (not paid for time)`);
+  L.push(`  Return (hotel to home):   ${milesFmt(c.retMiles)}  (${hoursFmt(c.retHrs)})`);
+  L.push(`  TOTAL MILES:              ${milesFmt(c.totalMiles)}`);
+  L.push(`  Paid drive time:          ${hoursFmt(c.paidHrs || null)}`);
+  L.push('');
+  L.push('PAY');
+  L.push(`  Mileage pay:    ${money(c.mileagePay)}   (${c.totalMiles != null ? milesFmt(c.totalMiles) : '—'} x ${c.perMile != null ? money(c.perMile) : '$—'}/mi)`);
+  L.push(`  Drive-time pay: ${money(c.drivePay)}   (${hoursFmt(c.paidHrs || null)} x ${c.hourly != null ? money(c.hourly) : '$—'}/hr)`);
+  L.push('');
+  L.push('RECEIPTS');
+  if (trip.receipts.length) {
+    trip.receipts.slice().sort((a, b) => a.date.localeCompare(b.date)).forEach(r => {
+      L.push(`  ${r.date}  ${r.category.padEnd(8)} ${money(numOf(r.amount) || 0).padStart(10)}  ${r.note || ''}`);
+    });
+    L.push('  ' + '-'.repeat(36));
+    ['Food', 'Gas', 'Lodging', 'Other'].forEach(cat => { if (c.rcptByCat[cat]) L.push(`  ${cat} subtotal: ${money(c.rcptByCat[cat])}`); });
+    L.push(`  Receipts total: ${money(c.rcptTotal)}`);
+  } else { L.push('  (none)'); }
+  L.push('');
+  L.push('='.repeat(40));
+  L.push(`TOTAL EXPECTED FROM EMPLOYER: ${money(c.grand)}`);
+  L.push(`  = mileage ${money(c.mileagePay || 0)} + drive time ${money(c.drivePay || 0)} + receipts ${money(c.rcptTotal)}`);
+  if (c.missing.length) { L.push(''); L.push('NOTE — still missing: ' + c.missing.join(', ') + '.'); }
+  L.push('');
+  L.push('Generated ' + new Date().toLocaleString('en-US'));
+  return L.join('\n');
+}
+
+// ── Gather all photos from IndexedDB with sensible filenames ──
+async function gatherTripPhotos() {
+  const out = [];
+  for (const k of CP_KEYS) {
+    if (trip.checkpoints[k].photo) {
+      try { const b = await idbGet('cp_' + k); if (b) out.push({ name: `mileage/${CP_META[k].file}.${extForBlob(b)}`, blob: b }); } catch (e) {}
+    }
+  }
+  let i = 1;
+  for (const r of trip.receipts.slice().sort((a, b) => a.date.localeCompare(b.date))) {
+    if (r.photo) {
+      try { const b = await idbGet('rcpt_' + r.id); if (b) { const nn = String(i).padStart(2, '0'); out.push({ name: `receipts/${nn}-${r.category.toLowerCase()}-${r.date}.${extForBlob(b)}`, blob: b }); } } catch (e) {}
+    }
+    i++;
+  }
+  return out;
+}
+
+function triggerBlobDownload(filename, blob) {
+  const u = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = u; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 4000);
+}
+
+async function downloadTripZip() {
+  try {
+    if (typeof JSZip === 'undefined') throw new Error('JSZip unavailable');
+    showToast('Building ZIP…', 'info');
+    const zip = new JSZip();
+    zip.file('summary.txt', buildTripSummaryText());
+    const photos = await gatherTripPhotos();
+    photos.forEach(p => zip.file(p.name, p.blob));
+    const content = await zip.generateAsync({ type: 'blob' });
+    const base = (trip.destination || 'trip').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'trip';
+    triggerBlobDownload(`${base}-expenses.zip`, content);
+    showToast('ZIP downloaded', 'success');
+  } catch (e) {
+    showToast('ZIP failed — use “Download files individually” as backup', 'info');
+  }
+}
+
+async function downloadTripFilesIndividually() {
+  // Backup path: summary + each photo, one at a time. No compression involved.
+  triggerBlobDownload('summary.txt', new Blob([buildTripSummaryText()], { type: 'text/plain' }));
+  let photos = [];
+  try { photos = await gatherTripPhotos(); } catch (e) {}
+  if (!photos.length) { showToast('Summary downloaded (no photos to save)', 'success'); return; }
+  showToast(`Downloading ${photos.length} photo(s)…`, 'info');
+  for (const p of photos) {
+    triggerBlobDownload(p.name.split('/').pop(), p.blob);
+    await new Promise(r => setTimeout(r, 400)); // let the browser queue each one
+  }
+  showToast('All files downloaded', 'success');
+}
+
+function downloadTripSummaryTxt() {
+  triggerBlobDownload('trip-summary.txt', new Blob([buildTripSummaryText()], { type: 'text/plain' }));
+  showToast('Summary downloaded', 'success');
+}
+
+async function startNewTrip() {
+  if (!confirm('Start a new trip? This clears the current trip and all its photos from this device. Make sure you have downloaded everything first.')) return;
+  try { await idbClear(); } catch (e) {}
+  trip = defaultTrip();
+  saveTrip();
+  stagedReceiptPhoto = null;
+  // reset entry row fields
+  ['rcpt-amt', 'rcpt-note'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  onReceiptPhotoStaged(null);
+  renderTrip();
+  showToast('New trip started', 'success');
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
