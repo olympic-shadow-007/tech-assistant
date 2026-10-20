@@ -1,4 +1,4 @@
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
     /* Kia color system — Midnight Black & Polar White (basic), Live Red (point) */
@@ -319,4 +319,101 @@
     .page-body { padding: 16px; }
     .form-grid { grid-template-columns: 1fr; }
     .options-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ── Trip Expenses ── */
+  .trip-body { max-width: 900px; }
+  .trip-card { margin-bottom: 18px; }
+  .trip-hint { font-size: 11.5px; color: var(--text3); margin-left: auto; text-align: right; max-width: 55%; }
+  .card-header { flex-wrap: wrap; }
+
+  .checkpoint-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .checkpoint { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; background: var(--surface2); display: flex; flex-direction: column; gap: 12px; }
+  .cp-head { display: flex; align-items: center; gap: 10px; }
+  .cp-step { flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; }
+  .cp-title { font-size: 13.5px; font-weight: 600; color: var(--text); }
+  .cp-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .cp-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .cp-photo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+  .photo-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: var(--radius); border: 1px dashed var(--border2); background: var(--surface); color: var(--text2); font-size: 12.5px; font-weight: 500; cursor: pointer; transition: border-color 0.12s, color 0.12s, background 0.12s; white-space: nowrap; }
+  .photo-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .photo-btn i { font-size: 15px; }
+
+  .cp-thumb, .rcpt-thumb { display: none; }
+  .cp-thumb.has-img { display: inline-flex; align-items: center; gap: 8px; }
+  .cp-thumb img { height: 46px; width: 46px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; }
+  .thumb-remove { background: transparent; border: none; color: var(--text3); cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 3px; padding: 2px 4px; border-radius: 4px; }
+  .thumb-remove:hover { color: var(--accent); background: var(--accent-light); }
+
+  /* Receipts */
+  .receipt-add { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: end; margin-bottom: 16px; }
+  .receipt-add .rcpt-note { grid-column: 1 / -1; }
+  .receipt-add .rcpt-photo-btn { height: 37px; }
+  .receipt-add .btn-green { height: 37px; justify-content: center; }
+  .rcpt-photo-btn.staged { border-style: solid; border-color: var(--green); color: var(--green); background: var(--green-bg); }
+
+  .receipt-day { margin-bottom: 14px; }
+  .receipt-day-head { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 2px 6px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
+  .receipt-day-head .rd-date { font-size: 12px; font-weight: 600; color: var(--text2); }
+  .receipt-day-head .rd-total { font-size: 12px; font-weight: 600; color: var(--text); font-family: 'DM Mono', monospace; }
+  .receipt-row { display: flex; align-items: center; gap: 10px; padding: 8px 2px; }
+  .receipt-row + .receipt-row { border-top: 1px solid var(--border); }
+  .rcpt-cat-pill { flex-shrink: 0; font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 100px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .cat-food { background: var(--green-bg); color: var(--green); }
+  .cat-gas { background: var(--blue-bg); color: var(--blue); }
+  .cat-lodging { background: var(--purple-bg); color: var(--purple); }
+  .cat-other { background: var(--amber-bg); color: var(--amber); }
+  .rcpt-amt { font-family: 'DM Mono', monospace; font-weight: 600; font-size: 13px; min-width: 72px; }
+  .rcpt-note-txt { flex: 1; font-size: 12.5px; color: var(--text2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rcpt-thumb-img { height: 34px; width: 34px; object-fit: cover; border-radius: 5px; border: 1px solid var(--border); cursor: pointer; flex-shrink: 0; }
+  .rcpt-del { flex-shrink: 0; background: transparent; border: 1px solid var(--border2); color: var(--text3); cursor: pointer; border-radius: 5px; padding: 3px 6px; font-size: 12px; }
+  .rcpt-del:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-light); }
+  .receipt-empty { font-size: 12.5px; color: var(--text3); font-style: italic; padding: 6px 2px; }
+
+  .receipt-totals { margin-top: 14px; border-top: 2px solid var(--border); padding-top: 12px; display: flex; flex-wrap: wrap; gap: 8px 18px; }
+  .rt-item { font-size: 12px; color: var(--text2); }
+  .rt-item b { font-family: 'DM Mono', monospace; color: var(--text); font-weight: 600; }
+  .rt-grand { margin-left: auto; font-size: 13px; color: var(--text); font-weight: 600; }
+  .rt-grand b { font-family: 'DM Mono', monospace; color: var(--accent); }
+
+  /* Summary card */
+  .trip-summary-card { padding: 22px 24px; margin-bottom: 18px; border-top: 3px solid var(--accent); }
+  .ts-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+  .ts-dest { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+  .ts-dates { font-size: 12px; color: var(--text3); font-family: 'DM Mono', monospace; }
+  .ts-section-label { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); margin: 18px 0 8px; }
+  .ts-table { width: 100%; border-collapse: collapse; }
+  .ts-table th { text-align: left; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text3); padding: 0 10px 6px 0; }
+  .ts-table th.num, .ts-table td.num { text-align: right; padding-right: 0; font-family: 'DM Mono', monospace; }
+  .ts-table td { font-size: 13px; padding: 6px 10px 6px 0; border-top: 1px solid var(--border); color: var(--text); }
+  .ts-table td.num { font-variant-numeric: tabular-nums; }
+  .ts-table tr.ts-sub td { font-weight: 600; color: var(--text2); border-top: 2px solid var(--border); }
+
+  .ts-pay { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+  .ts-paytile { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; background: var(--surface2); }
+  .ts-paytile .l { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text3); }
+  .ts-paytile .v { font-size: 20px; font-weight: 600; font-family: 'DM Mono', monospace; letter-spacing: -0.01em; margin-top: 3px; }
+  .ts-paytile .s { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  .ts-grand { margin-top: 16px; background: var(--accent); color: #fff; border-radius: var(--radius); padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; }
+  .ts-grand .l { font-size: 13px; font-weight: 600; letter-spacing: 0.01em; }
+  .ts-grand .v { font-size: 24px; font-weight: 600; font-family: 'DM Mono', monospace; }
+  [data-theme="dark"] .ts-grand { background: var(--lake-blue); }
+  .ts-missing { font-size: 11.5px; color: var(--amber); background: var(--amber-bg); border-radius: var(--radius); padding: 8px 12px; margin-top: 12px; display: flex; gap: 6px; align-items: center; }
+
+  .download-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .download-note { font-size: 11.5px; color: var(--text3); margin-top: 12px; display: flex; gap: 6px; align-items: flex-start; line-height: 1.5; }
+  .download-note i { font-size: 14px; margin-top: 1px; flex-shrink: 0; }
+
+  /* Lightbox for tapping a photo */
+  .photo-lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 3000; padding: 20px; }
+  .photo-lightbox.open { display: flex; }
+  .photo-lightbox img { max-width: 100%; max-height: 100%; border-radius: 6px; }
+
+  @media (max-width: 680px) {
+    .checkpoint-grid { grid-template-columns: 1fr; }
+    .receipt-add { grid-template-columns: 1fr 1fr; }
+    .ts-pay { grid-template-columns: 1fr; }
+    .trip-hint { max-width: 100%; text-align: left; margin-left: 0; }
   }
